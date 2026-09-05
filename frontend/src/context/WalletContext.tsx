@@ -1,6 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
 import { SUPPORTED_CHAIN_IDS, CHAIN_NAMES } from "../lib/contracts";
+import api from "../lib/api";
+
+export interface UserProfile {
+  address: string;
+  displayName: string;
+  bio: string;
+  avatarUrl?: string;
+  skills?: string[];
+  portfolioLinks?: string[];
+}
 
 interface WalletContextType {
   provider: BrowserProvider | null;
@@ -11,11 +21,14 @@ interface WalletContextType {
   isConnected: boolean;
   isAuthenticated: boolean;
   isAuthChecking: boolean;
+  profile: UserProfile | null;
+  loadingProfile: boolean;
   error: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   switchAccount: () => Promise<void>;
   switchToSepolia: () => Promise<void>;
+  refetchProfile: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
@@ -28,7 +41,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchProfile = useCallback(async (walletAddr: string | null) => {
+    if (!walletAddr) {
+      setProfile(null);
+      return;
+    }
+    setLoadingProfile(true);
+    try {
+      const res = await api.get(`/profile/${walletAddr}`);
+      setProfile(res.data);
+    } catch {
+      setProfile(null);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, []);
+
+  const refetchProfile = useCallback(async () => {
+    if (address && isAuthenticated) {
+      await fetchProfile(address);
+    }
+  }, [address, isAuthenticated, fetchProfile]);
 
   const resetState = useCallback(() => {
     setProvider(null);
@@ -36,11 +73,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(null);
     setChainId(null);
     setIsAuthenticated(false);
+    setProfile(null);
   }, []);
 
   const evaluateSession = useCallback((currentAddr: string | null) => {
     if (!currentAddr) {
       setIsAuthenticated(false);
+      setProfile(null);
       return false;
     }
     const token = localStorage.getItem("gigchain_jwt");
@@ -48,6 +87,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     if (token && authAddress && authAddress.toLowerCase() === currentAddr.toLowerCase()) {
       setIsAuthenticated(true);
+      fetchProfile(currentAddr);
       return true;
     } else {
       if (token || authAddress) {
@@ -55,9 +95,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("gigchain_auth_address");
       }
       setIsAuthenticated(false);
+      setProfile(null);
       return false;
     }
-  }, []);
+  }, [fetchProfile]);
 
   const connect = useCallback(async () => {
     if (!window.ethereum) {
@@ -81,6 +122,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("gigchain_jwt");
       if (token && storedAuth && storedAuth.toLowerCase() === walletAddress.toLowerCase()) {
         setIsAuthenticated(true);
+        fetchProfile(walletAddress);
       } else {
         if (token || storedAuth) {
           localStorage.removeItem("gigchain_jwt");
@@ -88,6 +130,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
         }
         setIsAuthenticated(false);
+        setProfile(null);
       }
 
       setProvider(browserProvider);
@@ -257,6 +300,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isConnected: !!address,
       isAuthenticated,
       isAuthChecking,
+      profile,
+      loadingProfile,
+      refetchProfile,
       error,
       connect,
       disconnect,

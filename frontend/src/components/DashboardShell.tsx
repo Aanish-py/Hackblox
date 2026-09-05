@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,14 +13,12 @@ import {
   ShieldCheck,
   AlertCircle,
   ChevronRight,
-  Activity,
   RefreshCw,
 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import GigChainLogo from "./GigChainLogo";
 import { shortenAddress } from "../lib/types";
 import { CHAIN_NAMES, SUPPORTED_CHAIN_IDS } from "../lib/contracts";
-import api from "../lib/api";
 import clsx from "clsx";
 
 interface DashboardShellProps {
@@ -28,45 +26,20 @@ interface DashboardShellProps {
   activeTab?: string;
 }
 
-interface UserProfile {
-  address: string;
-  displayName: string;
-  bio: string;
-  avatarUrl?: string;
-}
-
 export default function DashboardShell({ children }: DashboardShellProps) {
-  const { address, isConnected, chainId, disconnect, switchAccount } = useWallet();
+  const {
+    address,
+    isConnected,
+    isAuthenticated,
+    profile,
+    loadingProfile,
+    chainId,
+    disconnect,
+    switchAccount,
+  } = useWallet();
   const location = useLocation();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  // Fetch real profile data for authenticated wallet and validate session
-  useEffect(() => {
-    if (!address) {
-      setProfile(null);
-      return;
-    }
-
-    // Address-scoped session validation: clear stale token if mismatch detected
-    const token = localStorage.getItem("gigchain_jwt");
-    const authAddress = localStorage.getItem("gigchain_auth_address");
-
-    if (token && authAddress && authAddress.toLowerCase() !== address.toLowerCase()) {
-      localStorage.removeItem("gigchain_jwt");
-      localStorage.removeItem("gigchain_auth_address");
-      window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
-    }
-
-    setLoadingProfile(true);
-    api
-      .get(`/profile/${address}`)
-      .then((r) => setProfile(r.data))
-      .catch(() => setProfile(null))
-      .finally(() => setLoadingProfile(false));
-  }, [address]);
 
   const navItems = [
     {
@@ -122,13 +95,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     : "Sepolia Testnet";
 
   const hasDisplayName = profile?.displayName && profile.displayName.trim().length > 0;
-  const token = localStorage.getItem("gigchain_jwt");
-  const authAddress = localStorage.getItem("gigchain_auth_address");
-  const isSessionAuthenticated =
-    Boolean(token) &&
-    Boolean(authAddress) &&
-    Boolean(address) &&
-    authAddress?.toLowerCase() === address?.toLowerCase();
+  const isSessionAuthenticated = isAuthenticated;
 
   return (
     <div className="min-h-screen bg-[#F8F8FC] text-[#172033] flex flex-col md:flex-row">

@@ -17,7 +17,7 @@ interface Profile {
 
 export default function ProfilePage() {
   const { address: paramAddr } = useParams<{ address?: string }>();
-  const { address: myAddr } = useWallet();
+  const { address: myAddr, refetchProfile } = useWallet();
   const target = paramAddr || myAddr;
   const isOwn = target?.toLowerCase() === myAddr?.toLowerCase();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -59,6 +59,9 @@ export default function ProfilePage() {
       const res = await api.put(`/profile/${target}`, form);
       setProfile(res.data);
       setEditing(false);
+      if (isOwn) {
+        await refetchProfile();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {

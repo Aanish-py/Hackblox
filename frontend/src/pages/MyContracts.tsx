@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useWallet } from "../context/WalletContext";
 import { useAllGigs, useGig } from "../hooks/useGig";
 import { useGigEscrowContract } from "../hooks/useContract";
 import { useToast } from "../components/TransactionToast";
 import MilestoneCard from "../components/MilestoneCard";
 import DashboardShell from "../components/DashboardShell";
-import { GigState, type Gig, formatEther } from "../lib/types";
+import { GigState, type Gig, formatEther, shortenAddress } from "../lib/types";
 import { GIGESCROW_ADDRESS } from "../lib/contracts";
 import {
   Plus,
@@ -266,19 +266,47 @@ function GigDetailPanel({ gigId, address }: { gigId: number; address: string }) 
 }
 
 export default function MyContracts() {
-  const { address, isConnected, connect, isConnecting } = useWallet();
+  const { address, isAuthenticated, isAuthChecking, profile } = useWallet();
   const { gigs, loading, error, refetch } = useAllGigs(100);
   const [expandedGig, setExpandedGig] = useState<number | null>(null);
   const [roleFilter, setRoleFilter] = useState<"all" | "client" | "freelancer">("all");
 
+  // STATE 1: Session initializing
+  if (isAuthChecking) {
+    return (
+      <DashboardShell>
+        <div className="space-y-6">
+          <div className="pb-2 border-b border-[#E2E4EE] space-y-2">
+            <div className="h-7 w-48 bg-[#F1F2FA] rounded animate-pulse" />
+            <div className="h-4 w-72 bg-[#F1F2FA] rounded animate-pulse" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array(4)
+              .fill(null)
+              .map((_, i) => (
+                <div key={i} className="h-24 rounded-xl border border-[#E2E4EE] bg-white animate-pulse" />
+              ))}
+          </div>
+          <div className="h-36 rounded-xl border border-[#E2E4EE] bg-white animate-pulse" />
+          <div className="h-64 rounded-xl border border-[#E2E4EE] bg-white animate-pulse" />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  // STATE 2: Not authenticated
+  if (!isAuthenticated || !address) {
+    return <Navigate to="/auth?returnTo=%2Fmy-contracts" replace />;
+  }
+
   const myGigs = gigs.filter(
     (g) =>
-      g.client.toLowerCase() === address?.toLowerCase() ||
-      g.freelancer.toLowerCase() === address?.toLowerCase()
+      g.client.toLowerCase() === address.toLowerCase() ||
+      g.freelancer.toLowerCase() === address.toLowerCase()
   );
 
-  const clientGigs = myGigs.filter((g) => g.client.toLowerCase() === address?.toLowerCase());
-  const freelancerGigs = myGigs.filter((g) => g.freelancer.toLowerCase() === address?.toLowerCase());
+  const clientGigs = myGigs.filter((g) => g.client.toLowerCase() === address.toLowerCase());
+  const freelancerGigs = myGigs.filter((g) => g.freelancer.toLowerCase() === address.toLowerCase());
 
   // Metrics derived exclusively from real on-chain contract records
   const activeCount = myGigs.filter((g) => g.state === GigState.InProgress).length;
@@ -383,10 +411,25 @@ export default function MyContracts() {
         {/* Title & Quick Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E4EE]">
           <div>
-            <h1 className="text-2xl font-bold text-[#172033] tracking-tight">
-              Dashboard Overview
-            </h1>
-            <p className="text-xs text-[#5F6878] mt-0.5">
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-2xl font-bold text-[#172033] tracking-tight">
+                Dashboard Overview
+              </h1>
+              {profile?.displayName && profile.displayName.trim().length > 0 ? (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30">
+                  {profile.displayName}
+                </span>
+              ) : (
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors"
+                >
+                  <AlertCircle className="w-3 h-3 text-amber-600" />
+                  <span>Profile setup required</span>
+                </Link>
+              )}
+            </div>
+            <p className="text-xs text-[#5F6878]">
               Live escrow pipeline, milestone commitments, and fund settlements.
             </p>
           </div>
@@ -684,14 +727,18 @@ export default function MyContracts() {
                 <div className="p-12 text-center rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
                   <Briefcase className="w-10 h-10 text-[#8A93A3] mx-auto mb-3" />
                   <h3 className="text-base font-bold text-[#172033] mb-1">
-                    No active contracts yet
+                    {myGigs.length === 0
+                      ? "No active contracts found for this wallet."
+                      : roleFilter === "client"
+                      ? "No contracts found as client"
+                      : "No contracts found as freelancer"}
                   </h3>
                   <p className="text-xs text-[#5F6878] max-w-sm mx-auto mb-5 leading-relaxed">
-                    {roleFilter === "client"
+                    {myGigs.length === 0
+                      ? `No active contracts found for wallet ${shortenAddress(address, 4)}. Browse open gigs to submit proposals or post a new project to initialize an escrow contract.`
+                      : roleFilter === "client"
                       ? "You haven't posted any gigs as a client yet. Post a project to lock funds into escrow."
-                      : roleFilter === "freelancer"
-                      ? "You haven't been assigned to any contracts yet. Browse open gigs to submit proposals."
-                      : "Browse available gigs or post a project to get started."}
+                      : "You haven't been assigned to any contracts yet. Browse open gigs to submit proposals."}
                   </p>
                   <div className="flex items-center justify-center gap-3">
                     <Link
