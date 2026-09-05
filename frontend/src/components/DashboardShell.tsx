@@ -237,30 +237,34 @@ export default function DashboardShell({ children }: DashboardShellProps) {
         <header className="px-6 py-4 border-b border-[#E2E4EE] bg-white/95 backdrop-blur sticky top-0 z-30 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {loadingProfile ? (
-              <div className="h-5 w-36 bg-[#F1F2FA] rounded animate-pulse" />
+              <div className="h-5 w-48 bg-[#F1F2FA] rounded animate-pulse" />
             ) : hasDisplayName ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-[#172033]">
-                  Welcome, {profile?.displayName}
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm font-bold text-[#172033]">
+                  {(() => {
+                    const hour = new Date().getHours();
+                    const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+                    return `${greeting}, ${profile?.displayName}`;
+                  })()}
                 </span>
               </div>
             ) : isConnected ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-[#5F6878]">
-                  {shortenAddress(address || "", 4)}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-[#172033]">
+                  Your GigChain workspace
                 </span>
                 <Link
                   to="/profile"
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors"
                 >
                   <AlertCircle className="w-3 h-3 text-amber-600" />
                   <span>Profile setup required</span>
-                  <ChevronRight className="w-3 h-3" />
+                  <ChevronRight className="w-3 h-3 text-amber-600" />
                 </Link>
               </div>
             ) : (
-              <span className="text-sm font-medium text-[#5F6878]">
-                Guest Visitor
+              <span className="text-sm font-semibold text-[#5F6878]">
+                Your GigChain workspace
               </span>
             )}
           </div>
@@ -269,11 +273,11 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           <div className="flex items-center gap-3">
             <Link
               to="/post-gig"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-medium transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
               id="header-post-gig-btn"
             >
               <Plus className="w-3.5 h-3.5 text-white" />
-              <span>Post Gig</span>
+              <span>Post a Gig</span>
             </Link>
           </div>
         </header>

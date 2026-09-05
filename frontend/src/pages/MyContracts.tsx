@@ -280,7 +280,7 @@ export default function MyContracts() {
   const clientGigs = myGigs.filter((g) => g.client.toLowerCase() === address?.toLowerCase());
   const freelancerGigs = myGigs.filter((g) => g.freelancer.toLowerCase() === address?.toLowerCase());
 
-  // Metrics computed exclusively from real contract records
+  // Metrics derived exclusively from real on-chain contract records
   const activeCount = myGigs.filter((g) => g.state === GigState.InProgress).length;
   const completedCount = myGigs.filter((g) => g.state === GigState.Completed).length;
   const disputedCount = myGigs.filter((g) => g.state === GigState.Disputed).length;
@@ -292,7 +292,82 @@ export default function MyContracts() {
       ? freelancerGigs
       : myGigs;
 
-  // State badge style map
+  // Identify most relevant active contract for the compact escrow execution pipeline
+  const activeContract =
+    myGigs.find((g) => g.state === GigState.InProgress) ||
+    myGigs.find((g) => g.state === GigState.Open) ||
+    myGigs.find((g) => g.state === GigState.Disputed) ||
+    myGigs[0];
+
+  // Derive real pending actions strictly from existing contract data
+  const pendingActions: {
+    id: string;
+    gigId: number;
+    title: string;
+    type: "review" | "submit" | "select" | "dispute";
+    actionLabel: string;
+    actionLink: string;
+  }[] = [];
+
+  myGigs.forEach((g) => {
+    const isClient = g.client.toLowerCase() === address?.toLowerCase();
+    const isFreelancer = g.freelancer.toLowerCase() === address?.toLowerCase();
+
+    if (g.state === GigState.Open && isClient) {
+      pendingActions.push({
+        id: `select-${g.gigId}`,
+        gigId: Number(g.gigId),
+        title: `Proposals open for assignment: ${g.description.slice(0, 40)}...`,
+        type: "select",
+        actionLabel: "Review Bidders",
+        actionLink: `/my-contracts`,
+      });
+    } else if (g.state === GigState.InProgress && isFreelancer) {
+      pendingActions.push({
+        id: `submit-${g.gigId}`,
+        gigId: Number(g.gigId),
+        title: `Milestone deliverable pending: ${g.description.slice(0, 40)}...`,
+        type: "submit",
+        actionLabel: "Upload Work (IPFS)",
+        actionLink: `/submit-work/${g.gigId}`,
+      });
+    } else if (g.state === GigState.InProgress && isClient) {
+      pendingActions.push({
+        id: `review-${g.gigId}`,
+        gigId: Number(g.gigId),
+        title: `Active contract in milestone delivery: ${g.description.slice(0, 40)}...`,
+        type: "review",
+        actionLabel: "View Milestones",
+        actionLink: `/my-contracts`,
+      });
+    } else if (g.state === GigState.Disputed) {
+      pendingActions.push({
+        id: `dispute-${g.gigId}`,
+        gigId: Number(g.gigId),
+        title: `Dispute filed on Gig #${g.gigId}. Arbitration required.`,
+        type: "dispute",
+        actionLabel: "Open Dossier",
+        actionLink: `/dispute/${g.gigId}`,
+      });
+    }
+  });
+
+  // Calculate compact pipeline stage for the active contract
+  const getPipelineStage = (gig: Gig) => {
+    if (gig.state === GigState.Open) return 1; // Deposit locked
+    if (gig.state === GigState.InProgress) {
+      const completed = Number(gig.completedMilestoneCount);
+      const total = gig.milestones.length;
+      if (completed === 0) return 2; // Milestone execution
+      if (completed < total) return 3; // Deliverable submission / in review
+      return 4; // Final review
+    }
+    if (gig.state === GigState.Disputed) return 4; // Review / Arbitration
+    if (gig.state === GigState.Completed) return 5; // Released / Settled
+    return 1;
+  };
+
+  // State badge map
   const stateBadgeMap: Record<number, { label: string; style: string }> = {
     [GigState.Open]: { label: "Open", style: "bg-[#E8F5EE] text-[#176B4A] border-[#23895A]/30" },
     [GigState.InProgress]: { label: "In Progress", style: "bg-[#FEF3C7] text-[#92400E] border-[#F59E0B]/30" },
@@ -309,8 +384,8 @@ export default function MyContracts() {
           <div className="w-14 h-14 rounded-2xl bg-[#E8F5EE] border border-[#23895A]/30 flex items-center justify-center mx-auto mb-4 text-[#176B4A]">
             <Briefcase className="w-7 h-7" />
           </div>
-          <h2 className="text-xl font-display font-bold text-[#172033] mb-2">
-            Connect Wallet to Access Contracts
+          <h2 className="text-xl font-bold text-[#172033] mb-2">
+            Connect Wallet to Access Workspace
           </h2>
           <p className="text-xs text-[#5F6878] mb-6 leading-relaxed">
             Your contracts, active milestones, and escrow releases are securely stored on Ethereum Sepolia. Connect your wallet to view and manage them.
@@ -318,9 +393,9 @@ export default function MyContracts() {
           <button
             onClick={connect}
             disabled={isConnecting}
-            className="inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-medium transition-colors shadow-xs disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs disabled:opacity-50"
           >
-            {isConnecting ? "Connecting..." : "Connect MetaMask"}
+            {isConnecting ? "Connecting MetaMask..." : "Connect MetaMask"}
           </button>
         </div>
       </DashboardShell>
@@ -329,31 +404,31 @@ export default function MyContracts() {
 
   return (
     <DashboardShell>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Title & Quick Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E4EE]">
           <div>
-            <h1 className="text-2xl font-display font-bold text-[#172033]">
-              Contracts Overview
+            <h1 className="text-2xl font-bold text-[#172033] tracking-tight">
+              Dashboard Overview
             </h1>
-            <p className="text-xs text-[#5F6878] mt-1">
-              Manage your milestone commitments, fund releases, and escrow statuses.
+            <p className="text-xs text-[#5F6878] mt-0.5">
+              Live escrow pipeline, milestone commitments, and fund settlements.
             </p>
           </div>
           <div className="flex items-center gap-2.5">
             <Link
               to="/browse"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E2E4EE] bg-white hover:bg-[#F1F2FA] text-[#172033] text-xs font-medium transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E2E4EE] bg-white hover:bg-[#F1F2FA] text-[#172033] text-xs font-semibold transition-colors shadow-xs"
             >
               <Search className="w-3.5 h-3.5 text-[#8A93A3]" />
               <span>Browse Gigs</span>
             </Link>
             <Link
               to="/post-gig"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-medium transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5 text-white" />
-              <span>Post New Gig</span>
+              <span>Post a Gig</span>
             </Link>
           </div>
         </div>
@@ -378,7 +453,8 @@ export default function MyContracts() {
                   <div key={i} className="h-24 rounded-xl border border-[#E2E4EE] bg-white animate-pulse" />
                 ))}
             </div>
-            <div className="h-40 rounded-xl border border-[#E2E4EE] bg-white animate-pulse" />
+            <div className="h-32 rounded-xl border border-[#E2E4EE] bg-white animate-pulse" />
+            <div className="h-48 rounded-xl border border-[#E2E4EE] bg-white animate-pulse" />
           </div>
         ) : error ? (
           <div className="p-6 rounded-xl border border-red-200 bg-red-50 text-red-900 text-xs">
@@ -391,21 +467,21 @@ export default function MyContracts() {
             </p>
             <button
               onClick={() => refetch()}
-              className="px-4 py-2 rounded-lg bg-white hover:bg-[#F1F2FA] border border-[#E2E4EE] text-xs font-medium text-[#172033] transition-colors"
+              className="px-4 py-2 rounded-lg bg-white hover:bg-[#F1F2FA] border border-[#E2E4EE] text-xs font-semibold text-[#172033] transition-colors"
             >
               Retry Contract Query
             </button>
           </div>
         ) : (
           <>
-            {/* KPI Summary Cards (Real metrics only, rendered when contracts successfully loaded) */}
+            {/* KPI Summary Cards (Real metrics only) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold uppercase text-[#8A93A3]">Total Contracts</span>
+                  <span className="text-[11px] font-bold uppercase text-[#8A93A3]">Total Contracts</span>
                   <Layers className="w-4 h-4 text-[#8A93A3]" />
                 </div>
-                <div className="text-2xl font-display font-bold text-[#172033]">
+                <div className="text-2xl font-bold font-mono text-[#172033]">
                   {myGigs.length}
                 </div>
                 <p className="text-[11px] text-[#5F6878] mt-1">Associated with this wallet</p>
@@ -413,10 +489,10 @@ export default function MyContracts() {
 
               <div className="p-4 rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold uppercase text-[#8A93A3]">In Progress</span>
+                  <span className="text-[11px] font-bold uppercase text-[#8A93A3]">In Progress</span>
                   <Clock className="w-4 h-4 text-amber-500" />
                 </div>
-                <div className="text-2xl font-display font-bold text-amber-800">
+                <div className="text-2xl font-bold font-mono text-amber-800">
                   {activeCount}
                 </div>
                 <p className="text-[11px] text-[#5F6878] mt-1">Active milestone execution</p>
@@ -424,10 +500,10 @@ export default function MyContracts() {
 
               <div className="p-4 rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold uppercase text-[#8A93A3]">Completed</span>
+                  <span className="text-[11px] font-bold uppercase text-[#8A93A3]">Completed</span>
                   <CheckCircle2 className="w-4 h-4 text-[#176B4A]" />
                 </div>
-                <div className="text-2xl font-display font-bold text-[#176B4A]">
+                <div className="text-2xl font-bold font-mono text-[#176B4A]">
                   {completedCount}
                 </div>
                 <p className="text-[11px] text-[#5F6878] mt-1">All milestones settled</p>
@@ -435,154 +511,300 @@ export default function MyContracts() {
 
               <div className="p-4 rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold uppercase text-[#8A93A3]">Contested</span>
+                  <span className="text-[11px] font-bold uppercase text-[#8A93A3]">Contested</span>
                   <Scale className="w-4 h-4 text-red-500" />
                 </div>
-                <div className="text-2xl font-display font-bold text-red-700">
+                <div className="text-2xl font-bold font-mono text-red-700">
                   {disputedCount}
                 </div>
                 <p className="text-[11px] text-[#5F6878] mt-1">Requires arbitration</p>
               </div>
             </div>
 
-            {/* Role Selector Tabs */}
-            <div className="flex items-center justify-between border-b border-[#E2E4EE] pb-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setRoleFilter("all")}
-                  className={clsx(
-                    "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                    roleFilter === "all"
-                      ? "bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30 font-semibold"
-                      : "text-[#5F6878] hover:text-[#172033] hover:bg-[#F1F2FA]"
-                  )}
-                >
-                  All ({myGigs.length})
-                </button>
-                <button
-                  onClick={() => setRoleFilter("client")}
-                  className={clsx(
-                    "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                    roleFilter === "client"
-                      ? "bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30 font-semibold"
-                      : "text-[#5F6878] hover:text-[#172033] hover:bg-[#F1F2FA]"
-                  )}
-                >
-                  As Client ({clientGigs.length})
-                </button>
-                <button
-                  onClick={() => setRoleFilter("freelancer")}
-                  className={clsx(
-                    "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                    roleFilter === "freelancer"
-                      ? "bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30 font-semibold"
-                      : "text-[#5F6878] hover:text-[#172033] hover:bg-[#F1F2FA]"
-                  )}
-                >
-                  As Freelancer ({freelancerGigs.length})
-                </button>
-              </div>
-            </div>
+            {/* COMPACT ESCROW EXECUTION PIPELINE COMPONENT */}
+            {activeContract ? (
+              <div className="p-5 rounded-xl border border-[#E2E4EE] bg-white shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2E4EE]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#176B4A]" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
+                      Escrow Execution Pipeline · Gig #{Number(activeContract.gigId)}
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-[#5F6878]">
+                    <span className="font-semibold text-[#172033] truncate max-w-xs">{activeContract.description}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E8F5EE] text-[#176B4A]">
+                      {activeContract.client.toLowerCase() === address?.toLowerCase() ? "Client" : "Freelancer"}
+                    </span>
+                  </div>
+                </div>
 
-            {/* Empty or Populated List */}
-            {displayedGigs.length === 0 ? (
-              <div className="p-12 text-center rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
-                <Briefcase className="w-10 h-10 text-[#8A93A3] mx-auto mb-3" />
-                <h3 className="text-base font-semibold text-[#172033] mb-1">
-                  No active contracts found
+                {/* 5-Step Pipeline visualization */}
+                {(() => {
+                  const currentStage = getPipelineStage(activeContract);
+                  const stages = [
+                    { step: 1, name: "Deposit", desc: "Funds locked in escrow" },
+                    { step: 2, name: "Milestone", desc: "Work in execution" },
+                    { step: 3, name: "Deliverable", desc: "IPFS proof submitted" },
+                    { step: 4, name: "Review", desc: "Client verification" },
+                    { step: 5, name: "Release", desc: "Payment settled" },
+                  ];
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-1">
+                      {stages.map(({ step, name, desc }) => {
+                        const isCompleted = currentStage > step;
+                        const isCurrent = currentStage === step;
+
+                        return (
+                          <div
+                            key={step}
+                            className={clsx(
+                              "p-3 rounded-lg border transition-all",
+                              isCurrent
+                                ? "bg-[#E8F5EE] border-[#176B4A] shadow-xs"
+                                : isCompleted
+                                ? "bg-white border-[#E2E4EE]"
+                                : "bg-[#F8F8FC] border-[#E2E4EE] opacity-60"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span
+                                className={clsx(
+                                  "w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center font-mono",
+                                  isCurrent
+                                    ? "bg-[#176B4A] text-white"
+                                    : isCompleted
+                                    ? "bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30"
+                                    : "bg-[#E2E4EE] text-[#8A93A3]"
+                                )}
+                              >
+                                {isCompleted ? "✓" : step}
+                              </span>
+                              {isCurrent && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-[#176B4A]">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs font-bold text-[#172033]">{name}</p>
+                            <p className="text-[10px] text-[#5F6878] mt-0.5 leading-tight">{desc}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="p-6 rounded-xl border border-[#E2E4EE] bg-white shadow-xs text-center space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#8A93A3]" />
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-[#5F6878]">
+                    Escrow Execution Pipeline
+                  </h2>
+                </div>
+                <h3 className="text-sm font-bold text-[#172033]">
+                  No active contracts
                 </h3>
-                <p className="text-xs text-[#5F6878] max-w-sm mx-auto mb-5 leading-relaxed">
-                  {roleFilter === "client"
-                    ? "You haven't posted any gigs as a client yet. Post a gig to structure milestone escrow."
-                    : roleFilter === "freelancer"
-                    ? "You haven't been assigned to any contracts yet. Browse open gigs to submit proposals."
-                    : "Your wallet has no contract engagements recorded on Sepolia yet."}
+                <p className="text-xs text-[#5F6878] max-w-sm mx-auto leading-relaxed">
+                  You do not have any active escrow contracts running on Sepolia. Once you post a project or get assigned to a gig, the live settlement pipeline will track your funds here.
                 </p>
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center justify-center gap-2.5 pt-1">
+                  <Link
+                    to="/browse"
+                    className="px-3.5 py-1.5 rounded-lg border border-[#E2E4EE] bg-white hover:bg-[#F1F2FA] text-[#172033] text-xs font-semibold transition-colors shadow-xs"
+                  >
+                    Browse Gigs
+                  </Link>
                   <Link
                     to="/post-gig"
-                    className="px-4 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-medium transition-colors shadow-xs"
+                    className="px-3.5 py-1.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
                   >
                     Post a Gig
                   </Link>
-                  <Link
-                    to="/browse"
-                    className="px-4 py-2 rounded-lg border border-[#E2E4EE] bg-white hover:bg-[#F1F2FA] text-[#172033] text-xs font-medium transition-colors shadow-xs"
-                  >
-                    Browse Open Gigs
-                  </Link>
                 </div>
               </div>
-            ) : (
-          <div className="space-y-3">
-            {displayedGigs.map((gig) => {
-              const isExpanded = expandedGig === Number(gig.gigId);
-              const badge = stateBadgeMap[gig.state] || {
-                label: "Unknown",
-                style: "bg-[#F1F2FA] text-[#5F6878] border-[#E2E4EE]",
-              };
-              const isClient = gig.client.toLowerCase() === address?.toLowerCase();
+            )}
 
-              return (
-                <div
-                  key={Number(gig.gigId)}
-                  className="rounded-xl border border-[#E2E4EE] bg-white overflow-hidden transition-all hover:border-[#CBD2DE] shadow-xs"
-                >
-                  <div
-                    className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer"
-                    onClick={() => setExpandedGig(isExpanded ? null : Number(gig.gigId))}
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <span className="font-mono text-xs text-[#176B4A] font-bold shrink-0">
-                        #{Number(gig.gigId)}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-[#172033] truncate max-w-sm sm:max-w-md">
-                            {gig.description}
-                          </p>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#F1F2FA] text-[#5F6878] border border-[#E2E4EE] font-medium shrink-0">
-                            {isClient ? "Client" : "Freelancer"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-[#5F6878] mt-1 font-mono">
-                          <span className="font-semibold text-[#176B4A]">{formatEther(gig.totalBudget)} ETH</span>
-                          <span>·</span>
-                          <span>{Number(gig.completedMilestoneCount)} milestones done</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span
-                        className={clsx(
-                          "px-2.5 py-0.5 rounded-full text-[11px] font-medium border",
-                          badge.style
-                        )}
-                      >
-                        {badge.label}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-[#8A93A3]" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-[#8A93A3]" />
-                      )}
-                    </div>
+            {/* PENDING ACTIONS (SURFACED WHEN REAL ACTIONS ARE REQUIRED) */}
+            {pendingActions.length > 0 && (
+              <div className="p-5 rounded-xl border border-amber-200 bg-amber-50/40 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-700" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                      Pending Workspace Actions ({pendingActions.length})
+                    </h2>
                   </div>
-
-                  {isExpanded && (
-                    <div className="border-t border-[#E2E4EE] p-4 sm:p-5 bg-[#F8F8FC]">
-                      <GigDetailPanel gigId={Number(gig.gigId)} address={address!} />
-                    </div>
-                  )}
+                  <span className="text-[11px] text-amber-800">Requires interaction</span>
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="space-y-2">
+                  {pendingActions.slice(0, 3).map((act) => (
+                    <div
+                      key={act.id}
+                      className="p-3 rounded-lg bg-white border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="text-xs font-semibold text-[#172033]">{act.title}</span>
+                      </div>
+                      <Link
+                        to={act.actionLink}
+                        onClick={() => setExpandedGig(act.gigId)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shrink-0"
+                      >
+                        <span>{act.actionLabel}</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Role Selector Tabs & Contract List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E2E4EE] pb-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setRoleFilter("all")}
+                    className={clsx(
+                      "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                      roleFilter === "all"
+                        ? "bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30 shadow-xs"
+                        : "text-[#5F6878] hover:text-[#172033] hover:bg-[#F1F2FA]"
+                    )}
+                  >
+                    All ({myGigs.length})
+                  </button>
+                  <button
+                    onClick={() => setRoleFilter("client")}
+                    className={clsx(
+                      "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                      roleFilter === "client"
+                        ? "bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30 shadow-xs"
+                        : "text-[#5F6878] hover:text-[#172033] hover:bg-[#F1F2FA]"
+                    )}
+                  >
+                    As Client ({clientGigs.length})
+                  </button>
+                  <button
+                    onClick={() => setRoleFilter("freelancer")}
+                    className={clsx(
+                      "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                      roleFilter === "freelancer"
+                        ? "bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30 shadow-xs"
+                        : "text-[#5F6878] hover:text-[#172033] hover:bg-[#F1F2FA]"
+                    )}
+                  >
+                    As Freelancer ({freelancerGigs.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Empty or Populated List */}
+              {displayedGigs.length === 0 ? (
+                <div className="p-12 text-center rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
+                  <Briefcase className="w-10 h-10 text-[#8A93A3] mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-[#172033] mb-1">
+                    No active contracts yet
+                  </h3>
+                  <p className="text-xs text-[#5F6878] max-w-sm mx-auto mb-5 leading-relaxed">
+                    {roleFilter === "client"
+                      ? "You haven't posted any gigs as a client yet. Post a project to lock funds into escrow."
+                      : roleFilter === "freelancer"
+                      ? "You haven't been assigned to any contracts yet. Browse open gigs to submit proposals."
+                      : "Browse available gigs or post a project to get started."}
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <Link
+                      to="/browse"
+                      className="px-4 py-2 rounded-lg border border-[#E2E4EE] bg-white hover:bg-[#F1F2FA] text-[#172033] text-xs font-semibold transition-colors shadow-xs"
+                    >
+                      Browse Gigs
+                    </Link>
+                    <Link
+                      to="/post-gig"
+                      className="px-4 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
+                    >
+                      Post a Gig
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {displayedGigs.map((gig) => {
+                    const isExpanded = expandedGig === Number(gig.gigId);
+                    const badge = stateBadgeMap[gig.state] || {
+                      label: "Unknown",
+                      style: "bg-[#F1F2FA] text-[#5F6878] border-[#E2E4EE]",
+                    };
+                    const isClient = gig.client.toLowerCase() === address?.toLowerCase();
+
+                    return (
+                      <div
+                        key={Number(gig.gigId)}
+                        className="rounded-xl border border-[#E2E4EE] bg-white overflow-hidden transition-all hover:border-[#CBD2DE] shadow-xs"
+                      >
+                        <div
+                          className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer"
+                          onClick={() => setExpandedGig(isExpanded ? null : Number(gig.gigId))}
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <span className="font-mono text-xs text-[#176B4A] font-bold shrink-0">
+                              #{Number(gig.gigId)}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-[#172033] truncate max-w-sm sm:max-w-md">
+                                  {gig.description}
+                                </p>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#F1F2FA] text-[#5F6878] border border-[#E2E4EE] font-semibold shrink-0">
+                                  {isClient ? "Client" : "Freelancer"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-[#5F6878] mt-1 font-mono">
+                                <span className="font-semibold text-[#176B4A]">{formatEther(gig.totalBudget)} ETH</span>
+                                <span>·</span>
+                                <span>{Number(gig.completedMilestoneCount)} of {gig.milestones.length} milestones settled</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span
+                              className={clsx(
+                                "px-2.5 py-0.5 rounded-full text-[11px] font-semibold border",
+                                badge.style
+                              )}
+                            >
+                              {badge.label}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-[#8A93A3]" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-[#8A93A3]" />
+                            )}
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="border-t border-[#E2E4EE] p-4 sm:p-5 bg-[#F8F8FC]">
+                            <GigDetailPanel gigId={Number(gig.gigId)} address={address!} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
     </DashboardShell>
   );
 }
+
