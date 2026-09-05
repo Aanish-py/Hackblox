@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Shield, Wallet, CheckCircle2, ArrowRight, AlertCircle, Loader2, User, Lock, Key, RefreshCw } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import GigChainLogo from "../components/GigChainLogo";
@@ -22,15 +22,23 @@ interface UserProfile {
 }
 
 export default function Auth() {
-  const { address, signer, isConnected, connect, switchAccount, isConnecting, chainId } = useWallet();
+  const { address, signer, isConnected, connect, switchAccount, isConnecting, isAuthChecking, chainId } = useWallet();
   const [authStep, setAuthStep] = useState<AuthStep>("DISCONNECTED");
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [resolvingProfile, setResolvingProfile] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const returnTo = searchParams.get("returnTo");
+  const safeReturnTo = (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//"))
+    ? returnTo
+    : "/my-contracts";
 
   // Inspect existing session on mount or address change
   useEffect(() => {
+    if (isAuthChecking) return;
+
     if (!isConnected || !address) {
       setAuthStep("DISCONNECTED");
       setProfile(null);
@@ -43,6 +51,8 @@ export default function Auth() {
     // Strictly validate that stored token belongs to currently connected wallet address
     if (token && authAddress && authAddress.toLowerCase() === address.toLowerCase()) {
       resolveUserProfile(address);
+      // Already authenticated -> redirect directly to destination
+      navigate(safeReturnTo, { replace: true });
     } else {
       // Invalidate mismatching or stale tokens
       if (token || authAddress) {
@@ -52,7 +62,7 @@ export default function Auth() {
       setProfile(null);
       setAuthStep("CONNECTED");
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, isAuthChecking, navigate, safeReturnTo]);
 
   // Synchronize when auth session changes externally
   useEffect(() => {
@@ -319,7 +329,7 @@ export default function Auth() {
 
               <div className="space-y-2 pt-1">
                 <button
-                  onClick={() => navigate("/my-contracts")}
+                  onClick={() => navigate(safeReturnTo)}
                   id="auth-continue-btn"
                   className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
                 >
@@ -367,7 +377,7 @@ export default function Auth() {
                   <span>Set Up Profile Now</span>
                 </button>
                 <button
-                  onClick={() => navigate("/my-contracts")}
+                  onClick={() => navigate(safeReturnTo)}
                   id="auth-skip-to-dashboard-btn"
                   className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-white hover:bg-[#F1F2FA] text-[#5F6878] hover:text-[#172033] border border-[#E2E4EE] text-xs font-medium transition-colors"
                 >
@@ -379,7 +389,7 @@ export default function Auth() {
                   id="auth-switch-account-btn-missing"
                   className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-white hover:bg-[#F1F2FA] text-[#8A93A3] hover:text-[#172033] border border-[#E2E4EE] text-xs font-medium transition-colors"
                 >
-                  <RefreshCw className="w-3 h-3 text-[#176B4A]" />
+                  <RefreshCw className="w-3.5 h-3.5 text-[#176B4A]" />
                   <span>Switch Account</span>
                 </button>
               </div>

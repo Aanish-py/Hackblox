@@ -18,7 +18,16 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const { address, chainId, isConnected, isConnecting, connect, disconnect, switchAccount } = useWallet();
+  const {
+    address,
+    chainId,
+    isConnected,
+    isAuthenticated,
+    isConnecting,
+    connect,
+    disconnect,
+    switchAccount,
+  } = useWallet();
   const location = useLocation();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -32,6 +41,10 @@ export default function Navbar() {
     setDropdownOpen(false);
     navigate("/");
   };
+
+  const visibleNavLinks = isAuthenticated
+    ? navLinks
+    : navLinks.filter((l) => l.to === "/browse");
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[#E2E4EE] bg-white/95 backdrop-blur-md">
@@ -48,7 +61,7 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map(({ to, label, icon: Icon }) => (
+            {visibleNavLinks.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
@@ -68,7 +81,7 @@ export default function Navbar() {
           {/* Right side */}
           <div className="flex items-center gap-3">
             {/* Chain indicator */}
-            {isConnected && chainName && (
+            {isAuthenticated && chainName && (
               <div className={clsx(
                 "hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium",
                 isUnsupportedChain
@@ -81,17 +94,17 @@ export default function Navbar() {
             )}
 
             {/* Wallet Button */}
-            {isConnected ? (
+            {isAuthenticated && address ? (
               <div className="relative">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 bg-white border border-[#E2E4EE] text-[#172033] hover:bg-[#F1F2FA] shadow-sm"
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 bg-white border border-[#E2E4EE] text-[#172033] hover:bg-[#F1F2FA] shadow-xs"
                   id="wallet-dropdown-btn"
                 >
                   <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#176B4A] to-[#23895A] flex items-center justify-center text-[10px] text-white font-bold">
                     {address?.slice(2, 4).toUpperCase()}
                   </div>
-                  <span className="font-mono text-xs sm:text-sm font-semibold text-[#172033]">{shortenAddress(address!)}</span>
+                  <span className="font-mono text-xs sm:text-sm font-semibold text-[#172033]">{shortenAddress(address)}</span>
                   <ChevronDown className={clsx("w-3.5 h-3.5 text-[#8A93A3] transition-transform", dropdownOpen && "rotate-180")} />
                 </button>
 
@@ -142,16 +155,24 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
-            ) : (
-              <button
-                onClick={connect}
-                disabled={isConnecting}
-                id="connect-wallet-btn"
-                className="btn-primary text-sm py-2 px-4"
+            ) : isConnected ? (
+              <Link
+                to="/auth"
+                id="navbar-sign-in-btn"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
               >
-                <Wallet className="w-4 h-4" />
-                {isConnecting ? "Connecting..." : "Connect Wallet"}
-              </button>
+                <Wallet className="w-3.5 h-3.5" />
+                <span>Sign in with SIWE</span>
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                id="connect-wallet-btn"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>Connect Wallet</span>
+              </Link>
             )}
 
             {/* Mobile menu toggle */}
@@ -168,7 +189,7 @@ export default function Navbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden pb-4 border-t border-[#E2E4EE] pt-3 animate-fade-in">
-            {navLinks.map(({ to, label, icon: Icon }) => (
+            {visibleNavLinks.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}

@@ -377,31 +377,6 @@ export default function MyContracts() {
     [GigState.CancelledByFreelancer]: { label: "Cancelled", style: "bg-[#F1F2FA] text-[#5F6878] border-[#E2E4EE]" },
   };
 
-  if (!isConnected) {
-    return (
-      <DashboardShell>
-        <div className="py-16 text-center max-w-md mx-auto bg-white border border-[#E2E4EE] rounded-2xl p-8 shadow-xs">
-          <div className="w-14 h-14 rounded-2xl bg-[#E8F5EE] border border-[#23895A]/30 flex items-center justify-center mx-auto mb-4 text-[#176B4A]">
-            <Briefcase className="w-7 h-7" />
-          </div>
-          <h2 className="text-xl font-bold text-[#172033] mb-2">
-            Connect Wallet to Access Workspace
-          </h2>
-          <p className="text-xs text-[#5F6878] mb-6 leading-relaxed">
-            Your contracts, active milestones, and escrow releases are securely stored on Ethereum Sepolia. Connect your wallet to view and manage them.
-          </p>
-          <button
-            onClick={connect}
-            disabled={isConnecting}
-            className="inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs disabled:opacity-50"
-          >
-            {isConnecting ? "Connecting MetaMask..." : "Connect MetaMask"}
-          </button>
-        </div>
-      </DashboardShell>
-    );
-  }
-
   return (
     <DashboardShell>
       <div className="space-y-6">

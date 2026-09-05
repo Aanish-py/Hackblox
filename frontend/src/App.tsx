@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 import PostGig from "./pages/PostGig";
@@ -35,30 +36,108 @@ function NetworkBanner() {
 }
 
 export default function App() {
+  const { isAuthenticated } = useWallet();
   const location = useLocation();
-  const isPublicRoute =
+
+  // Show Navbar on public landing, auth, or on browse when unauthenticated
+  const showNavbar =
     location.pathname === "/" ||
-    location.pathname === "/auth";
+    location.pathname === "/auth" ||
+    (!isAuthenticated && location.pathname === "/browse");
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
       <NetworkBanner />
-      {isPublicRoute && <Navbar />}
+      {showNavbar && <Navbar />}
       <main>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Welcome />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<MyContracts />} />
-          <Route path="/my-contracts" element={<MyContracts />} />
-          <Route path="/gig/:gigId" element={<MyContracts />} />
           <Route path="/browse" element={<BrowseContracts />} />
-          <Route path="/post-gig" element={<PostGig />} />
-          <Route path="/submit-work/:gigId" element={<SubmitWork />} />
-          <Route path="/reputation" element={<Reputation />} />
-          <Route path="/reputation/:address" element={<Reputation />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/:address" element={<Profile />} />
-          <Route path="/dispute/:gigId" element={<DisputeDetails />} />
+
+          {/* Protected Routes — Require Real SIWE Authentication */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <MyContracts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-contracts"
+            element={
+              <ProtectedRoute>
+                <MyContracts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gig/:gigId"
+            element={
+              <ProtectedRoute>
+                <MyContracts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/post-gig"
+            element={
+              <ProtectedRoute>
+                <PostGig />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/submit-work/:gigId"
+            element={
+              <ProtectedRoute>
+                <SubmitWork />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reputation"
+            element={
+              <ProtectedRoute>
+                <Reputation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reputation/:address"
+            element={
+              <ProtectedRoute>
+                <Reputation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:address"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dispute/:gigId"
+            element={
+              <ProtectedRoute>
+                <DisputeDetails />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

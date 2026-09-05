@@ -9,6 +9,8 @@ interface WalletContextType {
   chainId: number | null;
   isConnecting: boolean;
   isConnected: boolean;
+  isAuthenticated: boolean;
+  isAuthChecking: boolean;
   error: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -24,6 +26,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
@@ -31,6 +35,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setSigner(null);
     setAddress(null);
     setChainId(null);
+    setIsAuthenticated(false);
+  }, []);
+
+  const evaluateSession = useCallback((currentAddr: string | null) => {
+    if (!currentAddr) {
+      setIsAuthenticated(false);
+      return false;
+    }
+    const token = localStorage.getItem("gigchain_jwt");
+    const authAddress = localStorage.getItem("gigchain_auth_address");
+
+    if (token && authAddress && authAddress.toLowerCase() === currentAddr.toLowerCase()) {
+      setIsAuthenticated(true);
+      return true;
+    } else {
+      if (token || authAddress) {
+        localStorage.removeItem("gigchain_jwt");
+        localStorage.removeItem("gigchain_auth_address");
+      }
+      setIsAuthenticated(false);
+      return false;
+    }
   }, []);
 
   const connect = useCallback(async () => {
@@ -52,10 +78,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       // Invalidate stale authentication if active wallet does not match stored auth address
       const storedAuth = localStorage.getItem("gigchain_auth_address");
-      if (storedAuth && storedAuth.toLowerCase() !== walletAddress.toLowerCase()) {
-        localStorage.removeItem("gigchain_jwt");
-        localStorage.removeItem("gigchain_auth_address");
-        window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+      const token = localStorage.getItem("gigchain_jwt");
+      if (token && storedAuth && storedAuth.toLowerCase() === walletAddress.toLowerCase()) {
+        setIsAuthenticated(true);
+      } else {
+        if (token || storedAuth) {
+          localStorage.removeItem("gigchain_jwt");
+          localStorage.removeItem("gigchain_auth_address");
+          window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+        }
+        setIsAuthenticated(false);
       }
 
       setProvider(browserProvider);
@@ -145,11 +177,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Synchronize session on address change
+  useEffect(() => {
+    evaluateSession(address);
+  }, [address, evaluateSession]);
+
+  // Synchronize on external auth change events
+  useEffect(() => {
+    const handleAuthChange = () => {
+      evaluateSession(address);
+    };
+    window.addEventListener("gigchain:auth_changed", handleAuthChange);
+    return () => window.removeEventListener("gigchain:auth_changed", handleAuthChange);
+  }, [address, evaluateSession]);
+
   // Auto-reconnect on page reload
   useEffect(() => {
     const wasConnected = localStorage.getItem("gigchain_wallet_connected");
     if (wasConnected && window.ethereum) {
-      connect();
+      connect().finally(() => {
+        setIsAuthChecking(false);
+      });
+    } else {
+      setIsAuthChecking(false);
     }
   }, [connect]);
 
@@ -169,6 +219,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           // Clear existing authentication session on account change
           localStorage.removeItem("gigchain_jwt");
           localStorage.removeItem("gigchain_auth_address");
+          setIsAuthenticated(false);
           window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
 
           await connect();
@@ -204,6 +255,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       chainId,
       isConnecting,
       isConnected: !!address,
+      isAuthenticated,
+      isAuthChecking,
       error,
       connect,
       disconnect,
