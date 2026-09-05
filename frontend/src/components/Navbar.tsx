@@ -42,9 +42,7 @@ export default function Navbar() {
     navigate("/");
   };
 
-  const visibleNavLinks = isAuthenticated
-    ? navLinks
-    : navLinks.filter((l) => l.to === "/browse");
+  const visibleNavLinks = isAuthenticated ? navLinks : [];
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[#E2E4EE] bg-white/95 backdrop-blur-md">
