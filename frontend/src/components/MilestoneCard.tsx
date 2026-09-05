@@ -48,19 +48,20 @@ export default function MilestoneCard({
 
   return (
     <div className={clsx(
-      "glass-card p-4 transition-all duration-300",
-      milestone.completed && "border-green-500/30 bg-green-500/5",
-      gigState === GigState.Disputed && !milestone.completed && "border-red-500/20"
+      "p-4 rounded-xl border transition-all duration-200",
+      milestone.completed && "border-[#23895A]/30 bg-[#E8F5EE]/40",
+      gigState === GigState.Disputed && !milestone.completed && "border-red-200 bg-red-50/40",
+      !milestone.completed && gigState !== GigState.Disputed && "border-[#E2E4EE] bg-white shadow-xs"
     )}>
       <div className="flex items-center gap-3">
         {/* Status icon */}
         <div className="shrink-0">
           {milestone.completed ? (
-            <CheckCircle className="w-6 h-6 text-green-400" />
+            <CheckCircle className="w-5 h-5 text-[#176B4A]" />
           ) : gigState === GigState.Disputed ? (
-            <AlertTriangle className="w-6 h-6 text-red-400" />
+            <AlertTriangle className="w-5 h-5 text-red-500" />
           ) : (
-            <Circle className="w-6 h-6 text-slate-600" />
+            <Circle className="w-5 h-5 text-[#8A93A3]" />
           )}
         </div>
 
@@ -69,17 +70,17 @@ export default function MilestoneCard({
           <div className="flex items-center justify-between gap-2">
             <p className={clsx(
               "font-semibold text-sm",
-              milestone.completed ? "text-green-300 line-through opacity-70" : "text-white"
+              milestone.completed ? "text-[#176B4A] line-through opacity-80" : "text-[#172033]"
             )}>
               Milestone {index + 1}
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-brand-300 font-mono text-sm font-bold">
+              <span className="text-[#176B4A] font-mono text-sm font-bold">
                 {formatEther(milestone.value)} ETH
               </span>
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="text-slate-500 hover:text-slate-300 transition-colors"
+                className="text-[#8A93A3] hover:text-[#172033] transition-colors p-1"
                 aria-label={expanded ? "Collapse" : "Expand"}
               >
                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -87,12 +88,12 @@ export default function MilestoneCard({
             </div>
           </div>
 
-          <p className="text-slate-400 text-xs mt-0.5 truncate">{milestone.description}</p>
+          <p className="text-[#5F6878] text-xs mt-0.5 truncate">{milestone.description}</p>
 
           {milestone.completed && (
             <div className="flex items-center gap-1 mt-1">
-              <Clock className="w-3 h-3 text-green-400" />
-              <span className="text-xs text-green-400">Payment released</span>
+              <Clock className="w-3 h-3 text-[#176B4A]" />
+              <span className="text-xs text-[#176B4A] font-medium">Payment released</span>
             </div>
           )}
         </div>
@@ -100,8 +101,8 @@ export default function MilestoneCard({
 
       {/* Expanded actions */}
       {expanded && (
-        <div className="mt-4 pt-4 border-t border-space-500 animate-fade-in">
-          <p className="text-sm text-slate-300 mb-4">{milestone.description}</p>
+        <div className="mt-4 pt-4 border-t border-[#E2E4EE] animate-fade-in">
+          <p className="text-sm text-[#172033] mb-4 bg-[#F8F8FC] p-3 rounded-lg border border-[#E2E4EE]">{milestone.description}</p>
 
           <div className="flex gap-3 flex-wrap">
             {canRelease && (
@@ -131,7 +132,7 @@ export default function MilestoneCard({
             )}
 
             {!canRelease && !canDispute && !milestone.completed && (
-              <p className="text-xs text-slate-500">No actions available in current state.</p>
+              <p className="text-xs text-[#8A93A3]">No actions available in current state.</p>
             )}
           </div>
         </div>

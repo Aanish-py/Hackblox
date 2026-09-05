@@ -1,6 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
 import { SUPPORTED_CHAIN_IDS, CHAIN_NAMES } from "../lib/contracts";
+import api from "../lib/api";
+
+export interface UserProfile {
+  address: string;
+  displayName: string;
+  bio: string;
+  avatarUrl?: string;
+  skills?: string[];
+  portfolioLinks?: string[];
+}
 
 interface WalletContextType {
   provider: BrowserProvider | null;
@@ -9,10 +19,16 @@ interface WalletContextType {
   chainId: number | null;
   isConnecting: boolean;
   isConnected: boolean;
+  isAuthenticated: boolean;
+  isAuthChecking: boolean;
+  profile: UserProfile | null;
+  loadingProfile: boolean;
   error: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
+  switchAccount: () => Promise<void>;
   switchToSepolia: () => Promise<void>;
+  refetchProfile: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
@@ -23,14 +39,66 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchProfile = useCallback(async (walletAddr: string | null) => {
+    if (!walletAddr) {
+      setProfile(null);
+      return;
+    }
+    setLoadingProfile(true);
+    try {
+      const res = await api.get(`/profile/${walletAddr}`);
+      setProfile(res.data);
+    } catch {
+      setProfile(null);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, []);
+
+  const refetchProfile = useCallback(async () => {
+    if (address && isAuthenticated) {
+      await fetchProfile(address);
+    }
+  }, [address, isAuthenticated, fetchProfile]);
 
   const resetState = useCallback(() => {
     setProvider(null);
     setSigner(null);
     setAddress(null);
     setChainId(null);
+    setIsAuthenticated(false);
+    setProfile(null);
   }, []);
+
+  const evaluateSession = useCallback((currentAddr: string | null) => {
+    if (!currentAddr) {
+      setIsAuthenticated(false);
+      setProfile(null);
+      return false;
+    }
+    const token = localStorage.getItem("gigchain_jwt");
+    const authAddress = localStorage.getItem("gigchain_auth_address");
+
+    if (token && authAddress && authAddress.toLowerCase() === currentAddr.toLowerCase()) {
+      setIsAuthenticated(true);
+      fetchProfile(currentAddr);
+      return true;
+    } else {
+      if (token || authAddress) {
+        localStorage.removeItem("gigchain_jwt");
+        localStorage.removeItem("gigchain_auth_address");
+      }
+      setIsAuthenticated(false);
+      setProfile(null);
+      return false;
+    }
+  }, [fetchProfile]);
 
   const connect = useCallback(async () => {
     if (!window.ethereum) {
@@ -48,6 +116,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const walletAddress = await walletSigner.getAddress();
       const network = await browserProvider.getNetwork();
       const cId = Number(network.chainId);
+
+      // Invalidate stale authentication if active wallet does not match stored auth address
+      const storedAuth = localStorage.getItem("gigchain_auth_address");
+      const token = localStorage.getItem("gigchain_jwt");
+      if (token && storedAuth && storedAuth.toLowerCase() === walletAddress.toLowerCase()) {
+        setIsAuthenticated(true);
+        fetchProfile(walletAddress);
+      } else {
+        if (token || storedAuth) {
+          localStorage.removeItem("gigchain_jwt");
+          localStorage.removeItem("gigchain_auth_address");
+          window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+        }
+        setIsAuthenticated(false);
+        setProfile(null);
+      }
 
       setProvider(browserProvider);
       setSigner(walletSigner);
@@ -71,7 +155,46 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     resetState();
     localStorage.removeItem("gigchain_wallet_connected");
     localStorage.removeItem("gigchain_jwt");
+    localStorage.removeItem("gigchain_auth_address");
+    window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
   }, [resetState]);
+
+  const switchAccount = useCallback(async () => {
+    if (!window.ethereum) {
+      setError("MetaMask not found. Please install MetaMask to use GigChain.");
+      return;
+    }
+
+    setIsConnecting(true);
+    setError(null);
+
+    try {
+      // Proactively clear existing authentication session before user picks a new account
+      localStorage.removeItem("gigchain_jwt");
+      localStorage.removeItem("gigchain_auth_address");
+      window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+
+      // Native MetaMask account selector prompt via EIP-2255
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+
+      await connect();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Account switch rejected";
+      if (
+        msg.includes("rejected") ||
+        (err as { code?: number })?.code === 4001
+      ) {
+        setError("Account switch cancelled in MetaMask.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [connect]);
 
   const switchToSepolia = useCallback(async () => {
     if (!window.ethereum) return;
@@ -97,11 +220,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Synchronize session on address change
+  useEffect(() => {
+    evaluateSession(address);
+  }, [address, evaluateSession]);
+
+  // Synchronize on external auth change events
+  useEffect(() => {
+    const handleAuthChange = () => {
+      evaluateSession(address);
+    };
+    window.addEventListener("gigchain:auth_changed", handleAuthChange);
+    return () => window.removeEventListener("gigchain:auth_changed", handleAuthChange);
+  }, [address, evaluateSession]);
+
   // Auto-reconnect on page reload
   useEffect(() => {
     const wasConnected = localStorage.getItem("gigchain_wallet_connected");
     if (wasConnected && window.ethereum) {
-      connect();
+      connect().finally(() => {
+        setIsAuthChecking(false);
+      });
+    } else {
+      setIsAuthChecking(false);
     }
   }, [connect]);
 
@@ -109,12 +250,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!window.ethereum) return;
 
-    const handleAccountsChanged = (...args: unknown[]) => {
+    const handleAccountsChanged = async (...args: unknown[]) => {
       const accounts = args[0] as string[];
-      if (accounts.length === 0) {
+      if (!accounts || accounts.length === 0) {
         disconnect();
-      } else if (accounts[0] !== address) {
-        connect();
+      } else {
+        const newAccount = accounts[0].toLowerCase();
+        const currentAccount = address?.toLowerCase();
+
+        if (newAccount !== currentAccount) {
+          // Clear existing authentication session on account change
+          localStorage.removeItem("gigchain_jwt");
+          localStorage.removeItem("gigchain_auth_address");
+          setIsAuthenticated(false);
+          window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+
+          await connect();
+        }
       }
     };
 
@@ -146,9 +298,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       chainId,
       isConnecting,
       isConnected: !!address,
+      isAuthenticated,
+      isAuthChecking,
+      profile,
+      loadingProfile,
+      refetchProfile,
       error,
       connect,
       disconnect,
+      switchAccount,
       switchToSepolia,
     }}>
       {children}

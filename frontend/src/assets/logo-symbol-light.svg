@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!--
+    GigChain G-mark — light background version
+    Color: #1A5C3D (Light-background dark emerald)
+    Use on: white/light backgrounds, print, light-mode UI
+  -->
+  <path
+    d="M 53.3,17.1 A 26,26 0 1 0 57.1,38.7 L 36.5,38.7 L 36.5,46"
+    stroke="#1A5C3D"
+    stroke-width="5.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GigChain Official Logo Visual Fidelity Test</title>
+  <style>
+    body {
+      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      background: #F8F8FC;
+      padding: 40px;
+      color: #0F1D38;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      align-items: center;
+    }
+    .card {
+      background: white;
+      border: 1px solid #E2E4EE;
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .dark-card {
+      background: #0B1B3D;
+      border: 1px solid #1E2D4A;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Official GigChain Logo Verification</h1>
+  <div class="grid">
+    <!-- Original raster reference -->
+    <div class="card">
+      <h3>Reference Image</h3>
+      <img src="/reference_logo.png" style="width: 140px; height: auto;" alt="Reference">
+    </div>
+
+    <!-- Scalable Vector SVG Prototype -->
+    <div class="card">
+      <h3>SVG Vector (Light)</h3>
+      <svg width="140" height="155" viewBox="0 0 100 115" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="emeraldTop" x1="50" y1="0" x2="100" y2="55" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#05A683" />
+            <stop offset="60%" stop-color="#0BB892" />
+            <stop offset="100%" stop-color="#14C49E" />
+          </linearGradient>
+          <linearGradient id="emeraldBottom" x1="50" y1="115" x2="100" y2="70" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#55D1BA" />
+            <stop offset="40%" stop-color="#24BEA2" />
+            <stop offset="100%" stop-color="#0CAE90" />
+          </linearGradient>
+          <linearGradient id="foldShadow" x1="60" y1="45" x2="80" y2="65" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#063D34" />
+            <stop offset="100%" stop-color="#0A4D42" />
+          </linearGradient>
+          <linearGradient id="navyLeft" x1="50" y1="0" x2="10" y2="100" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#1E3252" />
+            <stop offset="40%" stop-color="#0F2038" />
+            <stop offset="100%" stop-color="#081426" />
+          </linearGradient>
+        </defs>
+
+        <!-- 1. Navy Left Shield / G-Outer Spine -->
+        <path d="M 50 0 L 0 22 C -0.5 48 8 82 50 115 L 50 96 C 24 76 21 48 50 22 Z" fill="url(#navyLeft)" />
+
+        <!-- 2. Shadow fold under crossbar -->
+        <path d="M 50 22 C 68 22 80 32 82 44 L 58 60 L 50 60 Z" fill="url(#foldShadow)" />
+
+        <!-- 3. Top-Right Emerald Arch + Folded G-Crossbar -->
+        <path d="M 50 0 L 100 22 C 100.5 32 100 42 98.5 50 L 68 50 L 48 50 C 42 50 39 53 39 57.5 C 39 62 42 65 48 65 L 75 65 C 80 65 85 62 88 57 L 98.5 50 C 98.5 50 94 34 81 26 C 72 20 62 21 50 22 Z" fill="url(#emeraldTop)" />
+
+        <!-- 4. Lower-Right Emerald Upright Stem -->
+        <path d="M 50 115 C 82 92 98 78 100 68 L 78 68 C 76 77 70 87 50 96 Z" fill="url(#emeraldBottom)" />
+      </svg>
+      <div style="text-align: center; margin-top: 4px;">
+        <div style="font-size: 27px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1;">
+          <span style="color: #0F1D38;">Gig</span><span style="color: #05A683;">Chain</span>
+        </div>
+        <div style="font-size: 8px; font-weight: 700; color: #152844; letter-spacing: 0.22em; margin-top: 5px;">
+          TRUST BUILDS FREELANCE
+        </div>
+      </div>
+    </div>
+
+    <!-- Dark Mode Card -->
+    <div class="card dark-card">
+      <h3>SVG Vector (Dark)</h3>
+      <svg width="140" height="155" viewBox="0 0 100 115" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 1. Navy/Slate Left Shield -->
+        <path d="M 50 0 L 0 22 C -0.5 48 8 82 50 115 L 50 96 C 24 76 21 48 50 22 Z" fill="#243859" />
+        <!-- 2. Shadow fold -->
+        <path d="M 50 22 C 68 22 80 32 82 44 L 58 60 L 50 60 Z" fill="#0A3C34" />
+        <!-- 3. Top-Right Emerald Arch -->
+        <path d="M 50 0 L 100 22 C 100.5 32 100 42 98.5 50 L 68 50 L 48 50 C 42 50 39 53 39 57.5 C 39 62 42 65 48 65 L 75 65 C 80 65 85 62 88 57 L 98.5 50 C 98.5 50 94 34 81 26 C 72 20 62 21 50 22 Z" fill="#0BB892" />
+        <!-- 4. Lower-Right Emerald Upright -->
+        <path d="M 50 115 C 82 92 98 78 100 68 L 78 68 C 76 77 70 87 50 96 Z" fill="#24BEA2" />
+      </svg>
+      <div style="text-align: center; margin-top: 4px;">
+        <div style="font-size: 27px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1;">
+          <span style="color: #FFFFFF;">Gig</span><span style="color: #1CE2A0;">Chain</span>
+        </div>
+        <div style="font-size: 8px; font-weight: 700; color: #8EA0BF; letter-spacing: 0.22em; margin-top: 5px;">
+          TRUST BUILDS FREELANCE
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115" width="100%" height="100%">
+  <!-- GigChain Official Symbol (Emerald / Navy Shield G-Mark) -->
+  <defs>
+    <linearGradient id="gc-navy" x1="50" y1="0" x2="10" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1B2F4C" />
+      <stop offset="45%" stop-color="#0F2038" />
+      <stop offset="100%" stop-color="#081426" />
+    </linearGradient>
+    <linearGradient id="gc-top" x1="50" y1="0" x2="100" y2="55" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#05A683" />
+      <stop offset="55%" stop-color="#0BB892" />
+      <stop offset="100%" stop-color="#14C49E" />
+    </linearGradient>
+    <linearGradient id="gc-shadow" x1="60" y1="45" x2="80" y2="65" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#063D34" />
+      <stop offset="100%" stop-color="#0A4D42" />
+    </linearGradient>
+    <linearGradient id="gc-bot" x1="50" y1="115" x2="100" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#55D1BA" />
+      <stop offset="40%" stop-color="#24BEA2" />
+      <stop offset="100%" stop-color="#0CAE90" />
+    </linearGradient>
+  </defs>
+
+  <!-- Left Shield / G Spine -->
+  <path d="M 50 0 L 0 22 C -0.5 48 8 82 50 115 L 50 96 C 24 76 21 48 50 22 Z" fill="url(#gc-navy)" />
+  <!-- Fold shadow -->
+  <path d="M 50 22 C 68 22 80 32 82 44 L 58 60 L 50 60 Z" fill="url(#gc-shadow)" />
+  <!-- Top Right Emerald Arch & Folded G-Crossbar -->
+  <path d="M 50 0 L 100 22 C 100.5 32 100 42 98.5 50 L 68 50 L 48 50 C 42 50 39 53 39 57.5 C 39 62 42 65 48 65 L 75 65 C 80 65 85 62 88 57 L 98.5 50 C 98.5 50 94 34 81 26 C 72 20 62 21 50 22 Z" fill="url(#gc-top)" />
+  <!-- Lower Right Emerald Stem -->
+  <path d="M 50 115 C 82 92 98 78 100 68 L 78 68 C 76 77 70 87 50 96 Z" fill="url(#gc-bot)" />
+</svg>
