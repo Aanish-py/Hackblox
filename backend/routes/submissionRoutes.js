@@ -37,7 +37,7 @@ router.post("/", requireAuth, upload.single("file"), async (req, res, next) => {
     const { data, error } = await supabase
       .from("submissions")
       .insert({
-        gig_id: gigId,
+        gig_id: String(gigId),
         milestone_index: parseInt(milestoneIndex),
         freelancer_address: freelancer,
         description,
@@ -48,7 +48,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res, next) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[Submission Database Error]:", error);
+      return res.status(500).json({ error: error.message || "Failed to record submission in database", details: error });
+    }
 
     res.json({
       id: data.id,
@@ -58,7 +61,8 @@ router.post("/", requireAuth, upload.single("file"), async (req, res, next) => {
       ipfsUrl: ipfsHash ? `https://gateway.pinata.cloud/ipfs/${ipfsHash}` : null,
     });
   } catch (err) {
-    next(err);
+    console.error("[Submission Route Error]:", err);
+    res.status(500).json({ error: err.message || "Submission failed" });
   }
 });
 

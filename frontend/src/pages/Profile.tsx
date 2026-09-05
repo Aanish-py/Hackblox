@@ -70,9 +70,26 @@ export default function ProfilePage() {
     }
   };
 
-  const addSkill = (skill: string) => {
-    if (!skill.trim()) return;
-    setForm((f) => ({ ...f, skills: [...(f.skills || []), skill.trim()] }));
+  const [skillInput, setSkillInput] = useState("");
+
+  const addSkill = (input: string) => {
+    if (!input.trim()) return;
+    const newItems = input
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (newItems.length === 0) return;
+    setForm((f) => {
+      const existing = f.skills || [];
+      const combined = [...existing];
+      for (const item of newItems) {
+        if (!combined.some((s) => s.toLowerCase() === item.toLowerCase())) {
+          combined.push(item);
+        }
+      }
+      return { ...f, skills: combined };
+    });
+    setSkillInput("");
   };
 
   const removeSkill = (i: number) => {
@@ -290,19 +307,28 @@ export default function ProfilePage() {
           </div>
 
           {editing && (
-            <div className="pt-2">
+            <div className="pt-2 flex items-center gap-2">
               <input
-                placeholder="Type a skill and press Enter (e.g. Solidity, React, Node.js)..."
-                className="w-full bg-[#F8F8FC] border border-[#E2E4EE] rounded-lg px-3 py-2 text-xs text-[#172033] placeholder:text-[#8A93A3] focus:outline-none focus:border-[#176B4A] focus:bg-white transition-colors"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                placeholder="Type a skill (e.g. Solidity, React, Node.js) and click Add..."
+                className="flex-1 bg-[#F8F8FC] border border-[#E2E4EE] rounded-lg px-3 py-2 text-xs text-[#172033] placeholder:text-[#8A93A3] focus:outline-none focus:border-[#176B4A] focus:bg-white transition-colors"
                 id="add-skill-input"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    addSkill((e.target as HTMLInputElement).value);
-                    (e.target as HTMLInputElement).value = "";
+                    addSkill(skillInput);
                   }
                 }}
               />
+              <button
+                type="button"
+                onClick={() => addSkill(skillInput)}
+                id="add-skill-btn"
+                className="px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shrink-0"
+              >
+                + Add
+              </button>
             </div>
           )}
         </div>

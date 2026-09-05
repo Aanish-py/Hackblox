@@ -15,20 +15,28 @@ if (!PINATA_JWT) {
  * @returns {Promise<string>} IPFS CID
  */
 async function pinJSON(jsonData, name = "gigchain-data") {
-  const res = await axios.post(
-    "https://api.pinata.cloud/pinning/pinJSONToIPFS",
-    {
-      pinataContent: jsonData,
-      pinataMetadata: { name },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${PINATA_JWT}`,
-        "Content-Type": "application/json",
+  if (!PINATA_JWT) {
+    throw new Error("Pinata JWT token not configured on server (.env PINATA_JWT missing)");
+  }
+  try {
+    const res = await axios.post(
+      "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+      {
+        pinataContent: jsonData,
+        pinataMetadata: { name },
       },
-    }
-  );
-  return res.data.IpfsHash;
+      {
+        headers: {
+          Authorization: `Bearer ${PINATA_JWT}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return res.data.IpfsHash;
+  } catch (err) {
+    const detail = err.response?.data?.error?.details || err.response?.data?.error || err.message;
+    throw new Error(`Pinata IPFS JSON pinning failed: ${detail}`);
+  }
 }
 
 /**
@@ -38,23 +46,31 @@ async function pinJSON(jsonData, name = "gigchain-data") {
  * @returns {Promise<string>} IPFS CID
  */
 async function pinFile(fileBuffer, filename) {
-  const formData = new FormData();
-  formData.append("file", fileBuffer, { filename });
-  formData.append("pinataMetadata", JSON.stringify({ name: filename }));
+  if (!PINATA_JWT) {
+    throw new Error("Pinata JWT token not configured on server (.env PINATA_JWT missing)");
+  }
+  try {
+    const formData = new FormData();
+    formData.append("file", fileBuffer, { filename });
+    formData.append("pinataMetadata", JSON.stringify({ name: filename }));
 
-  const res = await axios.post(
-    "https://api.pinata.cloud/pinning/pinFileToIPFS",
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${PINATA_JWT}`,
-        ...formData.getHeaders(),
-      },
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-    }
-  );
-  return res.data.IpfsHash;
+    const res = await axios.post(
+      "https://api.pinata.cloud/pinning/pinFileToIPFS",
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${PINATA_JWT}`,
+          ...formData.getHeaders(),
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      }
+    );
+    return res.data.IpfsHash;
+  } catch (err) {
+    const detail = err.response?.data?.error?.details || err.response?.data?.error || err.message;
+    throw new Error(`Pinata IPFS file pinning failed: ${detail}`);
+  }
 }
 
 function getIPFSUrl(cid) {

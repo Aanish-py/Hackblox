@@ -46,8 +46,9 @@ export default function SubmitWork() {
 
       setIpfsHash(res.data.ipfsHash || null);
       setDone(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { error?: string } }; message?: string };
+      setError(apiErr?.response?.data?.error || apiErr?.message || "Submission failed");
     } finally {
       setSubmitting(false);
     }
