@@ -323,38 +323,7 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* ─── SECTION 5: FINAL CTA ─────────────────────────────────────────── */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 border-b border-[#E2E4EE]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-display font-bold text-[#172033] mb-4">
-            Work with confidence.
-          </h2>
-          <p className="text-base text-[#5F6878] max-w-xl mx-auto mb-8 leading-relaxed">
-            Find work, hire talent, and manage milestone escrow through one
-            transparent freelance workflow.
-          </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/browse"
-              id="final-browse-btn"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white font-medium text-sm transition-colors shadow-xs"
-            >
-              <span>Browse Gigs</span>
-              <ArrowRight className="w-4 h-4 text-emerald-200" />
-            </Link>
-
-            <Link
-              to="/post-gig"
-              id="final-post-btn"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg border border-[#E2E4EE] hover:border-[#CBD2DE] bg-white text-[#172033] hover:bg-[#F1F2FA] font-medium text-sm transition-colors shadow-xs"
-            >
-              <span>Post a Gig</span>
-              <ChevronRight className="w-4 h-4 text-[#8A93A3]" />
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* ─── SECTION 6: FOOTER ────────────────────────────────────────────── */}
       <footer className="py-10 px-4 sm:px-6 lg:px-8 bg-white border-t border-[#E2E4EE]">
