@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { useWallet } from "../context/WalletContext";
 import { useAllGigs, useGig } from "../hooks/useGig";
 import { useGigEscrowContract } from "../hooks/useContract";
@@ -266,10 +266,18 @@ function GigDetailPanel({ gigId, address }: { gigId: number; address: string }) 
 }
 
 export default function MyContracts() {
+  const { gigId: paramGigId } = useParams<{ gigId?: string }>();
+  const initialGigId = paramGigId ? Number(paramGigId) : null;
   const { address, isAuthenticated, isAuthChecking, profile } = useWallet();
   const { gigs, loading, error, refetch } = useAllGigs(100);
-  const [expandedGig, setExpandedGig] = useState<number | null>(null);
+  const [expandedGig, setExpandedGig] = useState<number | null>(initialGigId);
   const [roleFilter, setRoleFilter] = useState<"all" | "client" | "freelancer">("all");
+
+  useEffect(() => {
+    if (paramGigId) {
+      setExpandedGig(Number(paramGigId));
+    }
+  }, [paramGigId]);
 
   // STATE 1: Session initializing
   if (isAuthChecking) {
@@ -409,24 +417,51 @@ export default function MyContracts() {
     <DashboardShell>
       <div className="space-y-6">
         {/* Title */}
-        <div className="pb-2 border-b border-[#E2E4EE]">
-          <h1 className="text-2xl font-bold text-[#172033] tracking-tight mb-1">
-            Dashboard Overview
-          </h1>
-          <p className="text-xs text-[#5F6878]">
-            Live escrow pipeline, milestone commitments, and fund settlements.
-          </p>
+        <div className="pb-2 border-b border-[#E2E4EE] flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-[#172033] tracking-tight mb-1">
+              {paramGigId ? `Contract Instance Details · Gig #${paramGigId}` : "Dashboard Overview"}
+            </h1>
+            <p className="text-xs text-[#5F6878]">
+              {paramGigId
+                ? "Full escrow state, milestone execution timeline, and assigned parties."
+                : "Live escrow pipeline, milestone commitments, and fund settlements."}
+            </p>
+          </div>
+          {paramGigId && (
+            <Link
+              to="/my-contracts"
+              className="px-3 py-1.5 rounded-lg border border-[#E2E4EE] bg-white hover:bg-[#F1F2FA] text-[#172033] text-xs font-semibold transition-colors"
+            >
+              ← Back to All Contracts
+            </Link>
+          )}
         </div>
 
-        {/* Missing contract deployment warning (if any) */}
-        {!GIGESCROW_ADDRESS && (
-          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-3">
-            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-            <span>
-              Contract addresses not configured for Sepolia. Ensure Hardhat deployment script has run.
-            </span>
+        {/* Dedicated Standalone Gig Instance View when navigated via /gig/:gigId */}
+        {paramGigId ? (
+          <div className="p-6 rounded-xl border border-[#176B4A]/40 bg-white shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E4EE]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#176B4A]">
+                Contract Instance #{paramGigId}
+              </span>
+              <span className="text-[11px] font-mono text-[#5F6878]">
+                Sepolia Escrow Contract
+              </span>
+            </div>
+            <GigDetailPanel gigId={Number(paramGigId)} address={address} />
           </div>
-        )}
+        ) : (
+          <div className="space-y-6">
+            {/* Missing contract deployment warning (if any) */}
+            {!GIGESCROW_ADDRESS && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-3">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>
+                  Contract addresses not configured for Sepolia. Ensure Hardhat deployment script has run.
+                </span>
+              </div>
+            )}
 
         {/* Loading / Error / Content */}
         {loading ? (
@@ -458,7 +493,7 @@ export default function MyContracts() {
             </button>
           </div>
         ) : (
-          <>
+          <div className="space-y-6">
             {/* KPI Summary Cards (Real metrics only) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-xl border border-[#E2E4EE] bg-white shadow-xs">
@@ -790,8 +825,10 @@ export default function MyContracts() {
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
+      </div>
+    )}
       </div>
     </DashboardShell>
   );
