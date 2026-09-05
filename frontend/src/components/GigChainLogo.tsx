@@ -1,3 +1,4 @@
+import { useId } from "react";
 import clsx from "clsx";
 
 export interface GigChainLogoProps {
@@ -39,8 +40,10 @@ export function GigChainEmblem({ width, height, theme, className }: EmblemProps)
   const isMono = theme === "mono";
   const isDark = theme === "dark";
 
-  // Unique SVG IDs to prevent gradient collisions when multiple instances are mounted
-  const gradId = (name: string) => `gc-${name}-${theme}`;
+  // useId generates a unique per-instance prefix so gradient IDs never collide
+  // when multiple GigChainEmblem instances render on the same page.
+  const uid = useId().replace(/:/g, "");
+  const gradId = (name: string) => `gc-${uid}-${name}`;
 
   return (
     <svg
