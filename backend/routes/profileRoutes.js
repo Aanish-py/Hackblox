@@ -52,17 +52,20 @@ router.put("/:address", requireAuth, async (req, res, next) => {
       .from("profiles")
       .upsert({
         wallet_address: address.toLowerCase(),
-        display_name: displayName,
-        bio,
+        display_name: displayName || "",
+        bio: bio || "",
         skills: Array.isArray(skills) ? skills : [],
         portfolio_links: Array.isArray(portfolioLinks) ? portfolioLinks : [],
-        avatar_url: avatarUrl,
+        avatar_url: avatarUrl || "",
         updated_at: new Date().toISOString(),
       }, { onConflict: "wallet_address" })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[Profile Upsert Error]:", error);
+      return res.status(500).json({ error: error.message || "Failed to update profile", details: error });
+    }
 
     res.json({
       address: data.wallet_address,
