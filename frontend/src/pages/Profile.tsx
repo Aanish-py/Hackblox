@@ -62,8 +62,9 @@ export default function ProfilePage() {
       if (isOwn) {
         await refetchProfile();
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { error?: string } }; message?: string };
+      setError(apiErr?.response?.data?.error || apiErr?.message || "Save failed");
     } finally {
       setSaving(false);
     }
