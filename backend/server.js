@@ -46,6 +46,10 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.json({ status: "ok", message: "GigChain Backend API operational", docs: "/health" });
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString(), service: "gigchain-backend" });
 });
