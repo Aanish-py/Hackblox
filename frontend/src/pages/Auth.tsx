@@ -22,7 +22,7 @@ interface UserProfile {
 }
 
 export default function Auth() {
-  const { address, signer, isConnected, connect, isConnecting, chainId } = useWallet();
+  const { address, signer, isConnected, connect, switchAccount, isConnecting, chainId } = useWallet();
   const [authStep, setAuthStep] = useState<AuthStep>("DISCONNECTED");
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -38,11 +38,44 @@ export default function Auth() {
     }
 
     const token = localStorage.getItem("gigchain_jwt");
-    if (token) {
+    const authAddress = localStorage.getItem("gigchain_auth_address");
+
+    // Strictly validate that stored token belongs to currently connected wallet address
+    if (token && authAddress && authAddress.toLowerCase() === address.toLowerCase()) {
       resolveUserProfile(address);
     } else {
+      // Invalidate mismatching or stale tokens
+      if (token || authAddress) {
+        localStorage.removeItem("gigchain_jwt");
+        localStorage.removeItem("gigchain_auth_address");
+      }
+      setProfile(null);
       setAuthStep("CONNECTED");
     }
+  }, [isConnected, address]);
+
+  // Synchronize when auth session changes externally
+  useEffect(() => {
+    const handleAuthChange = () => {
+      if (!isConnected || !address) {
+        setAuthStep("DISCONNECTED");
+        setProfile(null);
+        return;
+      }
+
+      const token = localStorage.getItem("gigchain_jwt");
+      const authAddress = localStorage.getItem("gigchain_auth_address");
+
+      if (token && authAddress && authAddress.toLowerCase() === address.toLowerCase()) {
+        resolveUserProfile(address);
+      } else {
+        setProfile(null);
+        setAuthStep("CONNECTED");
+      }
+    };
+
+    window.addEventListener("gigchain:auth_changed", handleAuthChange);
+    return () => window.removeEventListener("gigchain:auth_changed", handleAuthChange);
   }, [isConnected, address]);
 
   const resolveUserProfile = async (walletAddr: string) => {
@@ -111,7 +144,10 @@ export default function Auth() {
       const verifyRes = await api.post("/auth/verify", { address, message, signature });
       const { token } = verifyRes.data;
 
+      // Address-scoped session storage
       localStorage.setItem("gigchain_jwt", token);
+      localStorage.setItem("gigchain_auth_address", address.toLowerCase());
+      window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
 
       // 5. Query real profile identity
       await resolveUserProfile(address);
@@ -219,14 +255,24 @@ export default function Auth() {
                 ))}
               </div>
 
-              <button
-                onClick={handleSignIn}
-                id="siwe-sign-btn"
-                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
-              >
-                <Shield className="w-4 h-4" />
-                <span>Sign in with Ethereum</span>
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handleSignIn}
+                  id="siwe-sign-btn"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Sign in with Ethereum</span>
+                </button>
+                <button
+                  onClick={switchAccount}
+                  id="auth-switch-account-btn"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-white hover:bg-[#F1F2FA] text-[#5F6878] hover:text-[#172033] border border-[#E2E4EE] text-xs font-semibold transition-colors shadow-xs"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-[#176B4A]" />
+                  <span>Switch MetaMask Account</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -271,14 +317,24 @@ export default function Auth() {
                 <span className="text-[#172033] font-bold">{shortenAddress(address || "", 6)}</span>
               </div>
 
-              <button
-                onClick={() => navigate("/my-contracts")}
-                id="auth-continue-btn"
-                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
-              >
-                <span>Continue to Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => navigate("/my-contracts")}
+                  id="auth-continue-btn"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
+                >
+                  <span>Continue to Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={switchAccount}
+                  id="auth-switch-account-btn-auth"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-white hover:bg-[#F1F2FA] text-[#8A93A3] hover:text-[#172033] border border-[#E2E4EE] text-xs font-medium transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3 text-[#176B4A]" />
+                  <span>Switch Account</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -317,6 +373,14 @@ export default function Auth() {
                 >
                   <span>Skip to Dashboard</span>
                   <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={switchAccount}
+                  id="auth-switch-account-btn-missing"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-white hover:bg-[#F1F2FA] text-[#8A93A3] hover:text-[#172033] border border-[#E2E4EE] text-xs font-medium transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3 text-[#176B4A]" />
+                  <span>Switch Account</span>
                 </button>
               </div>
             </div>

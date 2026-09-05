@@ -12,6 +12,7 @@ interface WalletContextType {
   error: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
+  switchAccount: () => Promise<void>;
   switchToSepolia: () => Promise<void>;
 }
 
@@ -49,6 +50,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const network = await browserProvider.getNetwork();
       const cId = Number(network.chainId);
 
+      // Invalidate stale authentication if active wallet does not match stored auth address
+      const storedAuth = localStorage.getItem("gigchain_auth_address");
+      if (storedAuth && storedAuth.toLowerCase() !== walletAddress.toLowerCase()) {
+        localStorage.removeItem("gigchain_jwt");
+        localStorage.removeItem("gigchain_auth_address");
+        window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+      }
+
       setProvider(browserProvider);
       setSigner(walletSigner);
       setAddress(walletAddress);
@@ -71,7 +80,46 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     resetState();
     localStorage.removeItem("gigchain_wallet_connected");
     localStorage.removeItem("gigchain_jwt");
+    localStorage.removeItem("gigchain_auth_address");
+    window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
   }, [resetState]);
+
+  const switchAccount = useCallback(async () => {
+    if (!window.ethereum) {
+      setError("MetaMask not found. Please install MetaMask to use GigChain.");
+      return;
+    }
+
+    setIsConnecting(true);
+    setError(null);
+
+    try {
+      // Proactively clear existing authentication session before user picks a new account
+      localStorage.removeItem("gigchain_jwt");
+      localStorage.removeItem("gigchain_auth_address");
+      window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+
+      // Native MetaMask account selector prompt via EIP-2255
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+
+      await connect();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Account switch rejected";
+      if (
+        msg.includes("rejected") ||
+        (err as { code?: number })?.code === 4001
+      ) {
+        setError("Account switch cancelled in MetaMask.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [connect]);
 
   const switchToSepolia = useCallback(async () => {
     if (!window.ethereum) return;
@@ -109,12 +157,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!window.ethereum) return;
 
-    const handleAccountsChanged = (...args: unknown[]) => {
+    const handleAccountsChanged = async (...args: unknown[]) => {
       const accounts = args[0] as string[];
-      if (accounts.length === 0) {
+      if (!accounts || accounts.length === 0) {
         disconnect();
-      } else if (accounts[0] !== address) {
-        connect();
+      } else {
+        const newAccount = accounts[0].toLowerCase();
+        const currentAccount = address?.toLowerCase();
+
+        if (newAccount !== currentAccount) {
+          // Clear existing authentication session on account change
+          localStorage.removeItem("gigchain_jwt");
+          localStorage.removeItem("gigchain_auth_address");
+          window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+
+          await connect();
+        }
       }
     };
 
@@ -149,6 +207,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       error,
       connect,
       disconnect,
+      switchAccount,
       switchToSepolia,
     }}>
       {children}

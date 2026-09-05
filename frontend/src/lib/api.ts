@@ -22,6 +22,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("gigchain_jwt");
+      localStorage.removeItem("gigchain_auth_address");
       window.dispatchEvent(new Event("gigchain:logout"));
     }
     return Promise.reject(error);

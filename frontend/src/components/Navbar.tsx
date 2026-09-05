@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Wallet, LogOut, ChevronDown, ExternalLink,
-  LayoutDashboard, Plus, Search, Award, User, Menu, X
+  LayoutDashboard, Plus, Search, Award, User, Menu, X, RefreshCw
 } from "lucide-react";
 import GigChainLogo from "./GigChainLogo";
 import { useWallet } from "../context/WalletContext";
@@ -18,7 +18,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const { address, chainId, isConnected, isConnecting, connect, disconnect } = useWallet();
+  const { address, chainId, isConnected, isConnecting, connect, disconnect, switchAccount } = useWallet();
   const location = useLocation();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -114,6 +114,22 @@ export default function Navbar() {
                       <ExternalLink className="w-4 h-4 text-[#8A93A3]" />
                       View on Etherscan
                     </a>
+                    <button
+                      onClick={async () => {
+                        setDropdownOpen(false);
+                        await switchAccount();
+                        const token = localStorage.getItem("gigchain_jwt");
+                        const authAddress = localStorage.getItem("gigchain_auth_address");
+                        if (!token || !authAddress) {
+                          navigate("/auth");
+                        }
+                      }}
+                      id="navbar-switch-account-btn"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#172033] hover:bg-[#F1F2FA] transition-colors w-full text-left font-medium"
+                    >
+                      <RefreshCw className="w-4 h-4 text-[#176B4A]" />
+                      Switch Account
+                    </button>
                     <div className="my-1 border-t border-[#E2E4EE]" />
                     <button
                       onClick={handleDisconnect}

@@ -14,6 +14,7 @@ import {
   AlertCircle,
   ChevronRight,
   Activity,
+  RefreshCw,
 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import GigChainLogo from "./GigChainLogo";
@@ -35,19 +36,30 @@ interface UserProfile {
 }
 
 export default function DashboardShell({ children }: DashboardShellProps) {
-  const { address, isConnected, chainId, disconnect } = useWallet();
+  const { address, isConnected, chainId, disconnect, switchAccount } = useWallet();
   const location = useLocation();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Fetch real profile data for authenticated wallet
+  // Fetch real profile data for authenticated wallet and validate session
   useEffect(() => {
     if (!address) {
       setProfile(null);
       return;
     }
+
+    // Address-scoped session validation: clear stale token if mismatch detected
+    const token = localStorage.getItem("gigchain_jwt");
+    const authAddress = localStorage.getItem("gigchain_auth_address");
+
+    if (token && authAddress && authAddress.toLowerCase() !== address.toLowerCase()) {
+      localStorage.removeItem("gigchain_jwt");
+      localStorage.removeItem("gigchain_auth_address");
+      window.dispatchEvent(new CustomEvent("gigchain:auth_changed"));
+    }
+
     setLoadingProfile(true);
     api
       .get(`/profile/${address}`)
@@ -94,6 +106,15 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     navigate("/");
   };
 
+  const handleSwitchAccount = async () => {
+    await switchAccount();
+    const token = localStorage.getItem("gigchain_jwt");
+    const authAddress = localStorage.getItem("gigchain_auth_address");
+    if (!token || !authAddress) {
+      navigate("/auth");
+    }
+  };
+
   const isUnsupportedChain =
     chainId !== null && !SUPPORTED_CHAIN_IDS.includes(chainId);
   const chainName = chainId
@@ -101,6 +122,13 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     : "Sepolia Testnet";
 
   const hasDisplayName = profile?.displayName && profile.displayName.trim().length > 0;
+  const token = localStorage.getItem("gigchain_jwt");
+  const authAddress = localStorage.getItem("gigchain_auth_address");
+  const isSessionAuthenticated =
+    Boolean(token) &&
+    Boolean(authAddress) &&
+    Boolean(address) &&
+    authAddress?.toLowerCase() === address?.toLowerCase();
 
   return (
     <div className="min-h-screen bg-[#F8F8FC] text-[#172033] flex flex-col md:flex-row">
@@ -176,7 +204,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           </nav>
         </div>
 
-        {/* Sidebar Bottom: Connected Wallet Info & Disconnect */}
+        {/* Sidebar Bottom: Connected Wallet Info & Actions */}
         <div className="p-4 border-t border-[#E2E4EE] bg-[#F1F2FA]/70 flex flex-col gap-3">
           {/* Network indicator */}
           <div className="flex items-center justify-between px-2 text-xs">
@@ -200,24 +228,37 @@ export default function DashboardShell({ children }: DashboardShellProps) {
             </a>
           </div>
 
-          {/* Authenticated Wallet / Disconnect */}
+          {/* Authenticated Wallet / Switch Account / Disconnect */}
           {isConnected && address ? (
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-white border border-[#E2E4EE] shadow-xs">
-              <div className="overflow-hidden">
-                <div className="text-[10px] font-semibold uppercase text-[#8A93A3]">
-                  Connected
+            <div className="flex flex-col gap-2 p-2.5 rounded-lg bg-white border border-[#E2E4EE] shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="overflow-hidden">
+                  <div className="text-[10px] font-semibold uppercase text-[#8A93A3]">
+                    Connected
+                  </div>
+                  <div className="font-mono text-xs text-[#172033] font-bold truncate max-w-[130px]" title={address}>
+                    {shortenAddress(address, 4)}
+                  </div>
                 </div>
-                <div className="font-mono text-xs text-[#172033] font-medium truncate max-w-[130px]" title={address}>
-                  {shortenAddress(address, 4)}
-                </div>
+                <button
+                  onClick={handleDisconnect}
+                  className="p-1.5 text-[#8A93A3] hover:text-red-600 transition-colors rounded"
+                  title="Disconnect Session"
+                  aria-label="Disconnect Session"
+                  id="dashboard-disconnect-btn"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
+
               <button
-                onClick={handleDisconnect}
-                className="p-1.5 text-[#8A93A3] hover:text-red-600 transition-colors rounded"
-                title="Disconnect Wallet"
-                aria-label="Disconnect Wallet"
+                onClick={handleSwitchAccount}
+                id="dashboard-switch-account-btn"
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md bg-[#F1F2FA] hover:bg-[#E2E4EE] text-[#172033] text-[11px] font-semibold transition-colors border border-[#E2E4EE]"
+                title="Select a different account in MetaMask"
               >
-                <LogOut className="w-4 h-4" />
+                <RefreshCw className="w-3 h-3 text-[#176B4A]" />
+                <span>Switch Account</span>
               </button>
             </div>
           ) : (
@@ -238,6 +279,20 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           <div className="flex items-center gap-3">
             {loadingProfile ? (
               <div className="h-5 w-48 bg-[#F1F2FA] rounded animate-pulse" />
+            ) : !isSessionAuthenticated && isConnected ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-[#172033]">
+                  Your GigChain workspace
+                </span>
+                <Link
+                  to="/auth"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#E8F5EE] border border-[#23895A]/30 text-[#176B4A] hover:bg-[#D5EFE0] transition-colors"
+                >
+                  <ShieldCheck className="w-3 h-3 text-[#176B4A]" />
+                  <span>Sign in with SIWE</span>
+                  <ChevronRight className="w-3 h-3 text-[#176B4A]" />
+                </Link>
+              </div>
             ) : hasDisplayName ? (
               <div className="flex items-center gap-2.5">
                 <span className="text-sm font-bold text-[#172033]">
