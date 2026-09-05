@@ -4,7 +4,6 @@ import {
   Shield,
   ArrowRight,
   ChevronRight,
-  ExternalLink,
   Award,
   Scale,
   Bot,
@@ -406,52 +405,7 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* ─── FINAL CTA ────────────────────────────────────────────────────── */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 border-b border-[#E2E4EE]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-display font-bold text-[#172033] mb-4">
-            Work with confidence.
-          </h2>
-          <p className="text-base text-[#5F6878] max-w-xl mx-auto mb-8 leading-relaxed">
-            Find work, hire talent, and manage milestone escrow through one
-            transparent, non-custodial freelance workflow.
-          </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/browse"
-              id="final-browse-btn"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white font-medium text-sm transition-colors shadow-xs"
-            >
-              <span>Browse Open Gigs</span>
-              <ArrowRight className="w-4 h-4 text-emerald-200" />
-            </Link>
-
-            <Link
-              to="/post-gig"
-              id="final-post-btn"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg border border-[#E2E4EE] hover:border-[#CBD2DE] bg-white text-[#172033] hover:bg-[#F1F2FA] font-medium text-sm transition-colors shadow-xs"
-            >
-              <span>Post a Gig</span>
-              <ChevronRight className="w-4 h-4 text-[#8A93A3]" />
-            </Link>
-          </div>
-
-          <p className="text-xs text-[#8A93A3] mt-6 flex items-center justify-center gap-1.5 font-medium">
-            <span>Deployed on Ethereum Sepolia</span>
-            <span>·</span>
-            <a
-              href="https://sepolia.etherscan.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#176B4A] hover:text-[#13583C] inline-flex items-center gap-1 font-semibold"
-            >
-              <span>Explorer</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </p>
-        </div>
-      </section>
 
       {/* ─── FOOTER ───────────────────────────────────────────────────────── */}
       <footer className="py-10 px-4 sm:px-6 lg:px-8 bg-white border-t border-[#E2E4EE]">
