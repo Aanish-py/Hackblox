@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GigChain Official Logo Multi-Scale Matrix</title>
+  <style>
+    body {
+      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      background: #F8F8FC;
+      padding: 30px;
+      color: #0F1D38;
+      margin: 0;
+    }
+    h1 { font-size: 24px; margin-bottom: 24px; }
+    h2 { font-size: 16px; margin: 20px 0 10px 0; color: #5F6878; text-transform: uppercase; letter-spacing: 0.08em; }
+    .section {
+      background: white;
+      border: 1px solid #E2E4EE;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .dark-section {
+      background: #0B1B3D;
+      border: 1px solid #1E2D4A;
+      color: white;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 32px;
+    }
+    .scale-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .label {
+      font-size: 11px;
+      font-family: monospace;
+      color: #8A93A3;
+    }
+    .dark-section .label { color: #8EA0BF; }
+    .side-by-side {
+      display: flex;
+      gap: 40px;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Official GigChain Logo Validation Suite</h1>
+
+  <!-- 1. Side by side reference verification -->
+  <div class="section">
+    <h2>1. Visual Reference vs SVG Vector Mark</h2>
+    <div class="side-by-side">
+      <div class="scale-box">
+        <span class="label">Reference Upload (Raster)</span>
+        <img src="/reference_logo.png" style="width: 140px; height: auto;" alt="Reference">
+      </div>
+      <div class="scale-box">
+        <span class="label">Vector SVG Full Stacked Asset</span>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <img src="/logo-symbol.svg" style="width: 110px; height: auto;" alt="SVG Symbol">
+          <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; margin-top: 6px;">
+            <span style="color: #0F1D38;">Gig</span><span style="color: #05A683;">Chain</span>
+          </div>
+          <div style="font-size: 8px; font-weight: 700; color: #152844; letter-spacing: 0.22em; margin-top: 5px;">
+            TRUST BUILDS FREELANCE
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Symbol at all required sizes -->
+  <div class="section">
+    <h2>2. Symbol-Only Scale Verification (16px, 24px, 32px, 48px, 64px, 128px, 256px)</h2>
+    <div class="row">
+      <div class="scale-box">
+        <img src="/logo-symbol.svg" style="height: 16px; width: auto;" alt="16px">
+        <span class="label">16px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/logo-symbol.svg" style="height: 24px; width: auto;" alt="24px">
+        <span class="label">24px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/logo-symbol.svg" style="height: 32px; width: auto;" alt="32px">
+        <span class="label">32px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/logo-symbol.svg" style="height: 48px; width: auto;" alt="48px">
+        <span class="label">48px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/logo-symbol.svg" style="height: 64px; width: auto;" alt="64px">
+        <span class="label">64px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/logo-symbol.svg" style="height: 128px; width: auto;" alt="128px">
+        <span class="label">128px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/logo-symbol.svg" style="height: 200px; width: auto;" alt="200px">
+        <span class="label">200px</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Favicon Verification -->
+  <div class="section">
+    <h2>3. Favicon Rendering (16px, 32px, 64px, 128px)</h2>
+    <div class="row">
+      <div class="scale-box">
+        <img src="/favicon.svg" style="height: 16px; width: 16px;" alt="Favicon 16">
+        <span class="label">16px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/favicon.svg" style="height: 32px; width: 32px;" alt="Favicon 32">
+        <span class="label">32px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/favicon.svg" style="height: 64px; width: 64px;" alt="Favicon 64">
+        <span class="label">64px</span>
+      </div>
+      <div class="scale-box">
+        <img src="/favicon.svg" style="height: 128px; width: 128px;" alt="Favicon 128">
+        <span class="label">128px</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Dark Theme and Monochrome Variants -->
+  <div class="section dark-section">
+    <h2 style="color: #A0B0CB;">4. Dark Theme & Monochrome Variants</h2>
+    <div class="row">
+      <div class="scale-box">
+        <img src="/logo-symbol-light.svg" style="height: 56px; width: auto;" alt="Dark Mode Symbol">
+        <span class="label">Dark Background Variant</span>
+      </div>
+      <div class="scale-box" style="color: #FFFFFF;">
+        <img src="/logo-symbol-mono.svg" style="height: 56px; width: auto; color: white;" alt="Mono White">
+        <span class="label">Monochrome (White)</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
