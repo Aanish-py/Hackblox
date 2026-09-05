@@ -408,47 +408,14 @@ export default function MyContracts() {
   return (
     <DashboardShell>
       <div className="space-y-6">
-        {/* Title & Quick Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E4EE]">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-[#172033] tracking-tight">
-                Dashboard Overview
-              </h1>
-              {profile?.displayName && profile.displayName.trim().length > 0 ? (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30">
-                  {profile.displayName}
-                </span>
-              ) : (
-                <Link
-                  to="/profile"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors"
-                >
-                  <AlertCircle className="w-3 h-3 text-amber-600" />
-                  <span>Profile setup required</span>
-                </Link>
-              )}
-            </div>
-            <p className="text-xs text-[#5F6878]">
-              Live escrow pipeline, milestone commitments, and fund settlements.
-            </p>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Link
-              to="/browse"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E2E4EE] bg-white hover:bg-[#F1F2FA] text-[#172033] text-xs font-semibold transition-colors shadow-xs"
-            >
-              <Search className="w-3.5 h-3.5 text-[#8A93A3]" />
-              <span>Browse Gigs</span>
-            </Link>
-            <Link
-              to="/post-gig"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5 text-white" />
-              <span>Post a Gig</span>
-            </Link>
-          </div>
+        {/* Title */}
+        <div className="pb-2 border-b border-[#E2E4EE]">
+          <h1 className="text-2xl font-bold text-[#172033] tracking-tight mb-1">
+            Dashboard Overview
+          </h1>
+          <p className="text-xs text-[#5F6878]">
+            Live escrow pipeline, milestone commitments, and fund settlements.
+          </p>
         </div>
 
         {/* Missing contract deployment warning (if any) */}
