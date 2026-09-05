@@ -41,16 +41,14 @@ export default function BadgeCard({ badgeType, level, value, mintedAt, size = "m
 
   return (
     <div className={clsx(
-      "glass-card",
+      "bg-white border border-[#E2E4EE] rounded-xl shadow-xs transition-all duration-200 hover:border-[#D1D5E2] hover:shadow-sm",
       sizeClasses[size],
-      badgeGlowClass[level],
       "flex flex-col items-center text-center gap-3 group"
     )}>
-      {/* Badge emoji in gradient ring */}
+      {/* Badge emoji in badge ring */}
       <div className={clsx(
-        "rounded-full p-3 bg-gradient-to-br",
-        BadgeLevelColors[level],
-        "shadow-lg group-hover:scale-110 transition-transform duration-300"
+        "w-14 h-14 rounded-full flex items-center justify-center bg-[#F1F2FA] border-2 group-hover:scale-105 transition-transform duration-200",
+        level >= 4 ? "border-amber-400 bg-amber-50" : level >= 2 ? "border-[#23895A] bg-[#E8F5EE]" : "border-[#CBD2DE]"
       )}>
         <span className={emojiSizes[size]} role="img" aria-label={BadgeNames[badgeType]}>
           {BadgeEmoji[badgeType]}
@@ -59,14 +57,10 @@ export default function BadgeCard({ badgeType, level, value, mintedAt, size = "m
 
       {/* Name + Level */}
       <div>
-        <p className={clsx("font-display font-semibold text-white", size === "sm" ? "text-sm" : "text-base")}>
+        <p className={clsx("font-display font-semibold text-[#172033]", size === "sm" ? "text-sm" : "text-base")}>
           {BadgeNames[badgeType]}
         </p>
-        <p className={clsx(
-          "font-semibold text-xs mt-0.5 bg-gradient-to-r",
-          BadgeLevelColors[level],
-          "bg-clip-text text-transparent"
-        )}>
+        <p className="font-semibold text-xs mt-0.5 text-[#176B4A]">
           Level {level} · {BadgeLevelNames[level]}
         </p>
       </div>
@@ -74,22 +68,24 @@ export default function BadgeCard({ badgeType, level, value, mintedAt, size = "m
       {/* Progress to next level */}
       {size !== "sm" && level < 5 && (
         <div className="w-full">
-          <div className="flex justify-between text-xs text-slate-500 mb-1">
+          <div className="flex justify-between text-xs text-[#5F6878] mb-1.5 font-medium">
             <span>{value.toLocaleString()}</span>
             <span>{nextThreshold.toLocaleString()} for L{level + 1}</span>
           </div>
-          <div className="milestone-progress">
-            <div className="milestone-progress-fill" style={{ width: `${progressPct}%` }} />
+          <div className="w-full h-1.5 bg-[#E2E4EE] rounded-full overflow-hidden">
+            <div className="h-full bg-[#176B4A] rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
       )}
 
       {level === 5 && size !== "sm" && (
-        <div className="text-xs text-yellow-400 font-semibold animate-pulse-slow">✦ Max Level Achieved</div>
+        <div className="text-xs text-amber-700 font-semibold px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full">
+          ✦ Max Level Achieved
+        </div>
       )}
 
       {mintedAt && size !== "sm" && (
-        <p className="text-xs text-slate-600">
+        <p className="text-[11px] text-[#8A93A3]">
           Earned {new Date(mintedAt * 1000).toLocaleDateString()}
         </p>
       )}

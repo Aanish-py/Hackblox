@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
@@ -20,13 +20,13 @@ function NetworkBanner() {
   const currentChainName = CHAIN_NAMES[chainId] || `Chain ${chainId}`;
 
   return (
-    <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-200 px-4 py-2 text-center text-xs sm:text-sm flex flex-wrap items-center justify-center gap-3">
+    <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-center text-xs sm:text-sm flex flex-wrap items-center justify-center gap-3">
       <span>
         ⚠️ <strong>Network Mismatch:</strong> Connected to <strong>{currentChainName}</strong>. Please switch to <strong>Sepolia Testnet</strong>.
       </span>
       <button
         onClick={switchToSepolia}
-        className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-lg text-xs font-semibold transition-colors"
+        className="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded-md text-xs font-semibold transition-colors"
       >
         Switch to Sepolia Testnet
       </button>
@@ -35,18 +35,24 @@ function NetworkBanner() {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isPublicRoute =
+    location.pathname === "/" ||
+    location.pathname === "/auth";
+
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
       <NetworkBanner />
-      <Navbar />
+      {isPublicRoute && <Navbar />}
       <main>
         <Routes>
           <Route path="/" element={<Welcome />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/browse" element={<BrowseContracts />} />
-          <Route path="/post-gig" element={<PostGig />} />
+          <Route path="/dashboard" element={<MyContracts />} />
           <Route path="/my-contracts" element={<MyContracts />} />
           <Route path="/gig/:gigId" element={<MyContracts />} />
+          <Route path="/browse" element={<BrowseContracts />} />
+          <Route path="/post-gig" element={<PostGig />} />
           <Route path="/submit-work/:gigId" element={<SubmitWork />} />
           <Route path="/reputation" element={<Reputation />} />
           <Route path="/reputation/:address" element={<Reputation />} />

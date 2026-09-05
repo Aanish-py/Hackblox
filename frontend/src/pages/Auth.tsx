@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Shield, Wallet, CheckCircle, ArrowRight } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Shield, Wallet, CheckCircle2, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
+import GigChainLogo from "../components/GigChainLogo";
 import api from "../lib/api";
 
 export default function Auth() {
-  const { address, signer, isConnected, connect } = useWallet();
+  const { address, signer, isConnected, connect, isConnecting } = useWallet();
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -19,11 +20,12 @@ export default function Auth() {
     setError(null);
 
     try {
-      // 1. Get nonce from backend
+      // 1. Fetch genuine nonce from backend
       const nonceRes = await api.get(`/auth/nonce/${address}`);
       const { nonce } = nonceRes.data;
 
-      // 2. Build SIWE message
+      // 2. Formulate standard Sign-In With Ethereum (SIWE) message
+      const network = await signer.provider.getNetwork();
       const message = [
         "GigChain wants you to sign in with your Ethereum account:",
         address,
@@ -32,116 +34,186 @@ export default function Auth() {
         "",
         `URI: ${window.location.origin}`,
         "Version: 1",
-        `Chain ID: ${await signer.provider.getNetwork().then((n) => n.chainId)}`,
+        `Chain ID: ${network.chainId}`,
         `Nonce: ${nonce}`,
         `Issued At: ${new Date().toISOString()}`,
       ].join("\n");
 
-      // 3. Request signature from MetaMask
+      // 3. Request cryptographic signature from MetaMask
       const signature = await signer.signMessage(message);
 
-      // 4. Verify on backend → receive JWT
+      // 4. Verify on backend and receive session JWT
       const verifyRes = await api.post("/auth/verify", { address, message, signature });
       const { token } = verifyRes.data;
 
       localStorage.setItem("gigchain_jwt", token);
       setDone(true);
 
-      setTimeout(() => navigate("/browse"), 1500);
+      setTimeout(() => navigate("/my-contracts"), 1200);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Signature failed";
-      setError(msg.includes("rejected") ? "You rejected the signature request." : msg);
+      const msg = err instanceof Error ? err.message : "Authentication failed";
+      setError(
+        msg.includes("rejected") || msg.includes("denied")
+          ? "Signature was rejected in MetaMask. Please try again to authenticate."
+          : msg
+      );
     } finally {
       setSigning(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-20 page-enter">
+    <div className="min-h-screen bg-[#F8F8FC] text-[#172033] flex flex-col justify-center items-center px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Header */}
+        {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #06b6d4)" }}>
-            <Shield className="w-8 h-8 text-white" />
+          <div className="flex justify-center mb-4">
+            <Link to="/" aria-label="GigChain Home">
+              <GigChainLogo variant="symbol" size="lg" theme="light" />
+            </Link>
           </div>
-          <h1 className="heading-lg mb-2">Sign In with Ethereum</h1>
-          <p className="text-slate-400 text-sm">
-            Prove wallet ownership with a cryptographic signature. No password needed.
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-[#172033] mb-2">
+            Sign In with Ethereum
+          </h1>
+          <p className="text-sm text-[#5F6878]">
+            Verify address ownership via cryptographic signature. No passwords or third-party custody required.
           </p>
         </div>
 
-        <div className="glass-card p-8 animated-border">
+        {/* Authentication Panel */}
+        <div className="rounded-xl border border-[#E2E4EE] bg-white p-6 sm:p-8 shadow-xs">
           {!isConnected ? (
-            <div className="text-center">
-              <p className="text-slate-400 mb-6 text-sm">Connect your MetaMask wallet first.</p>
-              <button onClick={connect} id="auth-connect-btn" className="btn-primary w-full">
-                <Wallet className="w-5 h-5" /> Connect Wallet
+            <div className="text-center space-y-5">
+              <div className="w-12 h-12 rounded-xl bg-[#E8F5EE] border border-[#23895A]/30 flex items-center justify-center mx-auto text-[#176B4A]">
+                <Wallet className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-[#172033]">
+                  MetaMask Required
+                </h3>
+                <p className="text-xs text-[#5F6878] mt-1 leading-relaxed">
+                  Connect your Web3 wallet to access your contracts, submit deliverables, and manage escrow.
+                </p>
+              </div>
+              <button
+                onClick={connect}
+                disabled={isConnecting}
+                id="auth-connect-btn"
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-sm font-medium transition-colors shadow-xs disabled:opacity-50"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Connecting Wallet...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4" />
+                    <span>Connect MetaMask</span>
+                  </>
+                )}
               </button>
             </div>
           ) : alreadyAuthed && !done ? (
-            <div className="text-center">
-              <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-              <p className="text-white font-semibold mb-2">Already signed in</p>
-              <p className="text-slate-400 text-sm mb-6">Your session is active.</p>
-              <button onClick={() => navigate("/browse")} id="auth-continue-btn" className="btn-primary w-full">
-                Continue to App <ArrowRight className="w-5 h-5" />
+            <div className="text-center space-y-4 py-2">
+              <div className="w-12 h-12 rounded-xl bg-[#E8F5EE] border border-[#23895A]/30 flex items-center justify-center mx-auto text-[#176B4A]">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-[#172033]">
+                  Active Session Verified
+                </h3>
+                <p className="text-xs text-[#5F6878] mt-1">
+                  You are already authenticated with your connected wallet.
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-[#F8F8FC] border border-[#E2E4EE] font-mono text-xs text-[#172033] break-all text-left">
+                <span className="text-[10px] text-[#8A93A3] block uppercase font-semibold mb-0.5">Address</span>
+                {address}
+              </div>
+              <button
+                onClick={() => navigate("/my-contracts")}
+                id="auth-continue-btn"
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-sm font-medium transition-colors shadow-xs"
+              >
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           ) : done ? (
-            <div className="text-center animate-fade-in">
-              <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-              <p className="text-white font-semibold mb-2">Verified!</p>
-              <p className="text-slate-400 text-sm">Redirecting to the app...</p>
+            <div className="text-center space-y-4 py-6">
+              <div className="w-12 h-12 rounded-xl bg-[#E8F5EE] border border-[#23895A]/30 flex items-center justify-center mx-auto text-[#176B4A] animate-bounce">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-semibold text-[#176B4A]">
+                Signature Verified!
+              </h3>
+              <p className="text-xs text-[#5F6878]">
+                Opening your GigChain dashboard...
+              </p>
             </div>
           ) : (
-            <>
-              {/* Connected wallet info */}
-              <div className="glass-card p-4 mb-6" style={{ background: "rgba(124,58,237,0.08)" }}>
-                <p className="text-xs text-slate-500 mb-1">Connected wallet</p>
-                <p className="font-mono text-brand-300 text-sm break-all">{address}</p>
+            <div className="space-y-6">
+              {/* Connected wallet panel */}
+              <div className="p-3.5 rounded-lg bg-[#F8F8FC] border border-[#E2E4EE]">
+                <span className="text-[10px] font-mono uppercase text-[#8A93A3] font-semibold block mb-1">
+                  Connected Wallet
+                </span>
+                <p className="font-mono text-xs text-[#176B4A] font-semibold break-all">
+                  {address}
+                </p>
               </div>
 
-              {/* Steps */}
-              <div className="space-y-3 mb-6">
+              {/* SIWE Explanation */}
+              <div className="space-y-2.5">
                 {[
-                  "MetaMask will show you a human-readable message",
-                  "Sign it — no gas, no transaction, no funds moved",
-                  "Backend verifies the signature and issues a JWT session token",
+                  "MetaMask will present a human-readable challenge message.",
+                  "Zero gas fee, zero blockchain transaction, no funds moved.",
+                  "Cryptographic proof issues a secure session token.",
                 ].map((step, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm text-slate-400">
-                    <span className="w-5 h-5 rounded-full bg-brand-600/30 text-brand-300 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                  <div key={i} className="flex items-start gap-2.5 text-xs text-[#5F6878]">
+                    <span className="w-4 h-4 rounded-full bg-[#E8F5EE] text-[#176B4A] font-mono flex items-center justify-center text-[10px] shrink-0 mt-0.5 border border-[#23895A]/30 font-semibold">
                       {i + 1}
                     </span>
-                    {step}
+                    <span>{step}</span>
                   </div>
                 ))}
               </div>
 
+              {/* Error display */}
               {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-red-400 text-sm">
-                  {error}
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                  <span className="leading-relaxed">{error}</span>
                 </div>
               )}
 
+              {/* Sign Action Button */}
               <button
                 onClick={handleSign}
                 disabled={signing}
                 id="siwe-sign-btn"
-                className="btn-primary w-full"
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-sm font-medium transition-colors shadow-xs disabled:opacity-60"
               >
                 {signing ? (
-                  <><Shield className="w-5 h-5 animate-pulse" /> Waiting for signature...</>
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-200" />
+                    <span>Waiting for Signature in MetaMask...</span>
+                  </>
                 ) : (
-                  <><Shield className="w-5 h-5" /> Sign Message to Continue</>
+                  <>
+                    <Shield className="w-4 h-4 text-emerald-200" />
+                    <span>Sign Message to Authenticate</span>
+                  </>
                 )}
               </button>
-            </>
+            </div>
           )}
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-4">
-          Your private key never leaves MetaMask. This is a read-only signature.
+        {/* Security Note */}
+        <p className="text-center text-xs text-[#8A93A3] mt-6 leading-relaxed font-medium">
+          Your private keys never leave MetaMask. This authentication signature is strictly off-chain and read-only.
         </p>
       </div>
     </div>

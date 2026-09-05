@@ -82,37 +82,36 @@ export function TransactionToastProvider({ children }: { children: ReactNode }) 
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   const icons = {
-    pending: <Clock className="w-5 h-5 text-yellow-400 animate-spin" />,
-    success: <CheckCircle className="w-5 h-5 text-green-400" />,
-    error: <XCircle className="w-5 h-5 text-red-400" />,
+    pending: <Clock className="w-5 h-5 text-amber-600 animate-spin" />,
+    success: <CheckCircle className="w-5 h-5 text-[#176B4A]" />,
+    error: <XCircle className="w-5 h-5 text-red-600" />,
   };
 
   const borderColors = {
-    pending: "border-yellow-500/30",
-    success: "border-green-500/30",
-    error: "border-red-500/30",
+    pending: "border-l-amber-500",
+    success: "border-l-[#176B4A]",
+    error: "border-l-red-500",
   };
 
   return (
     <div
       className={clsx(
-        "pointer-events-auto glass-card px-4 py-3 flex items-start gap-3 min-w-72 max-w-96 animate-slide-up",
+        "pointer-events-auto bg-white border border-[#E2E4EE] rounded-xl px-4 py-3 flex items-start gap-3 min-w-72 max-w-96 shadow-lg animate-slide-up border-l-4",
         borderColors[toast.status]
       )}
-      style={{ borderLeft: "3px solid" }}
     >
       <div className="mt-0.5 shrink-0">{icons[toast.status]}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white">{toast.title}</p>
+        <p className="text-sm font-semibold text-[#172033]">{toast.title}</p>
         {toast.message && (
-          <p className="text-xs text-slate-400 mt-0.5">{toast.message}</p>
+          <p className="text-xs text-[#5F6878] mt-0.5">{toast.message}</p>
         )}
         {toast.txHash && (
           <a
             href={`https://sepolia.etherscan.io/tx/${toast.txHash}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-brand-400 flex items-center gap-1 mt-1 hover:text-brand-300"
+            className="text-xs text-[#176B4A] font-medium flex items-center gap-1 mt-1 hover:text-[#13583C]"
           >
             View on Etherscan <ExternalLink className="w-3 h-3" />
           </a>
@@ -120,7 +119,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       </div>
       <button
         onClick={onDismiss}
-        className="text-slate-500 hover:text-slate-300 transition-colors ml-2 shrink-0"
+        className="text-[#8A93A3] hover:text-[#172033] text-base leading-none transition-colors ml-2 shrink-0"
         aria-label="Dismiss notification"
       >
         ×

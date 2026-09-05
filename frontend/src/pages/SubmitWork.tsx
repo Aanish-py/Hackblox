@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Upload, Link2, FileText, Loader2, CheckCircle } from "lucide-react";
+import { Upload, Link2, FileText, Loader2, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import { useGig } from "../hooks/useGig";
+import DashboardShell from "../components/DashboardShell";
 import api from "../lib/api";
 import { GigState } from "../lib/types";
 
@@ -54,41 +55,84 @@ export default function SubmitWork() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card p-8 text-center"><p className="text-slate-400">Connect wallet to submit work.</p></div>
-      </div>
+      <DashboardShell>
+        <div className="bg-white border border-[#E2E4EE] rounded-xl p-12 text-center max-w-md mx-auto my-12 shadow-xs">
+          <p className="text-[#5F6878] text-sm mb-4">Connect your wallet to submit milestone work.</p>
+          <button
+            onClick={() => navigate("/auth")}
+            className="py-2.5 px-4 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      </DashboardShell>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
-      </div>
+      <DashboardShell>
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <Loader2 className="w-8 h-8 text-[#176B4A] animate-spin" />
+          <p className="text-xs text-[#5F6878]">Loading gig details from smart contract...</p>
+        </div>
+      </DashboardShell>
     );
   }
 
   if (!gig) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card p-8 text-center text-red-400">Gig #{gigId} not found.</div>
-      </div>
+      <DashboardShell>
+        <div className="bg-white border border-[#E2E4EE] rounded-xl p-10 text-center max-w-md mx-auto my-12 shadow-xs">
+          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+          <p className="text-base font-bold text-[#172033] mb-1">Gig #{gigId} Not Found</p>
+          <p className="text-xs text-[#5F6878] mb-4">The requested escrow contract could not be retrieved from on-chain state.</p>
+          <button
+            onClick={() => navigate("/my-contracts")}
+            className="px-4 py-2 rounded-lg bg-white border border-[#E2E4EE] text-xs font-semibold text-[#172033] hover:bg-[#F1F2FA]"
+          >
+            Back to Overview
+          </button>
+        </div>
+      </DashboardShell>
     );
   }
 
   if (!address || gig.freelancer.toLowerCase() !== address.toLowerCase()) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card p-8 text-center text-red-400">Only the assigned freelancer can submit work.</div>
-      </div>
+      <DashboardShell>
+        <div className="bg-white border border-[#E2E4EE] rounded-xl p-10 text-center max-w-md mx-auto my-12 shadow-xs">
+          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+          <p className="text-base font-bold text-[#172033] mb-1">Unauthorized Submitter</p>
+          <p className="text-xs text-[#5F6878] mb-4">
+            Only the assigned freelancer ({gig.freelancer.slice(0, 6)}...{gig.freelancer.slice(-4)}) can submit milestone deliverables.
+          </p>
+          <button
+            onClick={() => navigate("/my-contracts")}
+            className="px-4 py-2 rounded-lg bg-[#176B4A] text-white text-xs font-semibold"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </DashboardShell>
     );
   }
 
   if (gig.state !== GigState.InProgress) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-card p-8 text-center text-yellow-400">This gig is not in progress.</div>
-      </div>
+      <DashboardShell>
+        <div className="bg-white border border-[#E2E4EE] rounded-xl p-10 text-center max-w-md mx-auto my-12 shadow-xs">
+          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+          <p className="text-base font-bold text-[#172033] mb-1">Gig is Not In Progress</p>
+          <p className="text-xs text-[#5F6878] mb-4">Work can only be submitted while the escrow contract is actively In Progress.</p>
+          <button
+            onClick={() => navigate("/my-contracts")}
+            className="px-4 py-2 rounded-lg bg-[#176B4A] text-white text-xs font-semibold"
+          >
+            Back to Overview
+          </button>
+        </div>
+      </DashboardShell>
     );
   }
 
@@ -98,100 +142,123 @@ export default function SubmitWork() {
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-enter">
-        <div className="glass-card p-10 text-center max-w-md">
-          <CheckCircle className="w-14 h-14 text-green-400 mx-auto mb-4" />
-          <h2 className="heading-md mb-2">Submission Received!</h2>
-          <p className="text-slate-400 text-sm mb-4">
-            Your work has been submitted. The client will review and release payment.
+      <DashboardShell>
+        <div className="bg-white border border-[#E2E4EE] rounded-xl p-10 text-center max-w-lg mx-auto my-12 shadow-sm space-y-4">
+          <div className="w-16 h-16 rounded-full bg-[#E8F5EE] flex items-center justify-center mx-auto text-[#176B4A]">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-[#172033]">Deliverable Submitted Successfully!</h2>
+          <p className="text-xs text-[#5F6878] leading-relaxed max-w-sm mx-auto">
+            Your milestone submission has been recorded on-chain and indexed. The client will be notified to review and release payment.
           </p>
           {ipfsHash && (
-            <div className="glass-card p-3 mb-4" style={{ background: "rgba(13,17,23,0.6)" }}>
-              <p className="text-xs text-slate-500 mb-1">IPFS Hash</p>
-              <p className="font-mono text-xs text-brand-300 break-all">{ipfsHash}</p>
+            <div className="p-3.5 bg-[#F8F8FC] border border-[#E2E4EE] rounded-lg text-left">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A93A3] block mb-1">
+                IPFS Content Hash
+              </span>
+              <span className="font-mono text-xs text-[#176B4A] break-all select-all font-medium">
+                {ipfsHash}
+              </span>
             </div>
           )}
-          <button onClick={() => navigate("/my-contracts")} className="btn-primary" id="back-to-contracts-btn">
-            Back to My Contracts
+          <button
+            onClick={() => navigate("/my-contracts")}
+            className="w-full py-2.5 px-4 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-colors shadow-xs"
+            id="back-to-contracts-btn"
+          >
+            Return to Dashboard Overview
           </button>
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen py-12 px-4 page-enter">
-      <div className="max-w-xl mx-auto">
-        <div className="mb-8">
-          <h1 className="heading-lg mb-2">Submit Deliverable</h1>
-          <p className="text-slate-400 text-sm">
-            Gig #{gigId} · Notify the client you've completed a milestone.
+    <DashboardShell>
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Back navigation & Header */}
+        <div className="pb-3 border-b border-[#E2E4EE]">
+          <button
+            onClick={() => navigate("/my-contracts")}
+            className="inline-flex items-center gap-1.5 text-xs text-[#5F6878] hover:text-[#172033] mb-3 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Dashboard</span>
+          </button>
+          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">Submit Deliverable</h1>
+          <p className="text-xs text-[#5F6878] mt-0.5">
+            Gig #{gigId} · Upload deliverable proof and notify client for milestone approval.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Milestone selector */}
-          <div className="glass-card p-5">
-            <label className="input-label" htmlFor="milestone-select">Which milestone?</label>
+          <div className="bg-white border border-[#E2E4EE] rounded-xl p-5 shadow-xs space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6878]" htmlFor="milestone-select">
+              Select Milestone
+            </label>
             <select
               id="milestone-select"
               value={milestoneIndex}
               onChange={(e) => setMilestoneIndex(parseInt(e.target.value))}
-              className="input-field"
+              className="w-full bg-[#F8F8FC] border border-[#E2E4EE] rounded-lg px-3.5 py-2.5 text-xs font-medium text-[#172033] focus:outline-none focus:border-[#176B4A] focus:bg-white transition-colors"
             >
               {pendingMilestones.map((m) => (
                 <option key={m.index} value={m.index}>
-                  Milestone {m.index + 1}: {m.description.slice(0, 50)}
+                  Milestone {m.index + 1}: {m.description.slice(0, 60)}
                 </option>
               ))}
             </select>
           </div>
 
           {/* Description */}
-          <div className="glass-card p-5">
-            <label className="input-label" htmlFor="submission-desc">
-              <FileText className="w-3 h-3 inline mr-1" /> Work Description
+          <div className="bg-white border border-[#E2E4EE] rounded-xl p-5 shadow-xs space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6878] flex items-center gap-1.5" htmlFor="submission-desc">
+              <FileText className="w-3.5 h-3.5 text-[#176B4A]" />
+              <span>Deliverable Summary</span>
             </label>
             <textarea
               id="submission-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what you delivered, how it meets the milestone requirements, and any relevant details..."
+              placeholder="Describe in detail what you delivered, how it meets the milestone acceptance criteria, and any notes for the client..."
               rows={5}
               required
-              className="input-field resize-none"
+              className="w-full bg-[#F8F8FC] border border-[#E2E4EE] rounded-lg p-3 text-xs text-[#172033] placeholder:text-[#8A93A3] focus:outline-none focus:border-[#176B4A] focus:bg-white transition-colors resize-none"
             />
           </div>
 
           {/* External link */}
-          <div className="glass-card p-5">
-            <label className="input-label" htmlFor="external-link">
-              <Link2 className="w-3 h-3 inline mr-1" /> Deliverable Link (optional)
+          <div className="bg-white border border-[#E2E4EE] rounded-xl p-5 shadow-xs space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6878] flex items-center gap-1.5" htmlFor="external-link">
+              <Link2 className="w-3.5 h-3.5 text-[#176B4A]" />
+              <span>External Repository or Deliverable Link (Optional)</span>
             </label>
             <input
               id="external-link"
               type="url"
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
-              placeholder="https://github.com/... or https://drive.google.com/..."
-              className="input-field"
+              placeholder="https://github.com/org/repo/pull/1 or Figma URL"
+              className="w-full bg-[#F8F8FC] border border-[#E2E4EE] rounded-lg px-3.5 py-2.5 text-xs font-mono text-[#172033] placeholder:text-[#8A93A3] focus:outline-none focus:border-[#176B4A] focus:bg-white transition-colors"
             />
           </div>
 
           {/* File upload */}
-          <div className="glass-card p-5">
-            <label className="input-label">
-              <Upload className="w-3 h-3 inline mr-1" /> Upload File (optional — pinned to IPFS via Pinata)
+          <div className="bg-white border border-[#E2E4EE] rounded-xl p-5 shadow-xs space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6878] flex items-center gap-1.5">
+              <Upload className="w-3.5 h-3.5 text-[#176B4A]" />
+              <span>Upload Deliverable Artifact (Pinned to IPFS)</span>
             </label>
             <label
-              className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border border-dashed border-brand-600/30 hover:border-brand-600/60 transition-colors cursor-pointer"
+              className="flex flex-col items-center justify-center gap-2 p-8 rounded-xl border border-dashed border-[#E2E4EE] hover:border-[#176B4A]/50 bg-[#F8F8FC] hover:bg-[#E8F5EE]/30 transition-colors cursor-pointer"
               htmlFor="file-upload"
             >
-              <Upload className="w-8 h-8 text-brand-400" />
-              <span className="text-sm text-slate-400">
-                {file ? file.name : "Click to upload or drag & drop"}
+              <Upload className="w-7 h-7 text-[#176B4A]" />
+              <span className="text-xs font-medium text-[#172033]">
+                {file ? file.name : "Click to select file or drag and drop"}
               </span>
-              <span className="text-xs text-slate-600">Max 10MB · PDF, images, ZIP</span>
+              <span className="text-[11px] text-[#8A93A3]">Max 10MB · ZIP, PDF, images, TXT</span>
               <input
                 id="file-upload"
                 type="file"
@@ -203,18 +270,33 @@ export default function SubmitWork() {
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">{error}</div>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 text-red-700 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+              <span>{error}</span>
+            </div>
           )}
 
-          <button type="submit" disabled={submitting} id="submit-work-btn" className="btn-primary w-full py-4 text-base">
+          <button
+            type="submit"
+            disabled={submitting}
+            id="submit-work-btn"
+            className="w-full py-3.5 px-4 rounded-xl bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+          >
             {submitting ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Uploading & Submitting...</>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Uploading to IPFS & Submitting Deliverable...</span>
+              </>
             ) : (
-              <><Upload className="w-5 h-5" /> Submit Deliverable</>
+              <>
+                <Upload className="w-4 h-4" />
+                <span>Submit Deliverable for Client Approval</span>
+              </>
             )}
           </button>
         </form>
       </div>
-    </div>
+    </DashboardShell>
   );
 }
+
