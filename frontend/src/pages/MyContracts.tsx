@@ -385,7 +385,7 @@ export default function MyContracts() {
     if (gig.state === GigState.Open) return 1; // Deposit locked
     if (gig.state === GigState.InProgress) {
       const completed = Number(gig.completedMilestoneCount);
-      const total = gig.milestones.length;
+      const total = (gig as any).milestones?.length || 1;
       if (completed === 0) return 2; // Milestone execution
       if (completed < total) return 3; // Deliverable submission / in review
       return 4; // Final review
@@ -787,10 +787,10 @@ export default function MyContracts() {
                                   {isClient ? "Client" : "Freelancer"}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-[#5F6878] mt-1 font-mono">
+                                <div className="flex items-center gap-3 text-xs text-[#5F6878] mt-1 font-mono">
                                 <span className="font-semibold text-[#176B4A]">{formatEther(gig.totalBudget)} ETH</span>
                                 <span>·</span>
-                                <span>{Number(gig.completedMilestoneCount)} of {gig.milestones.length} milestones settled</span>
+                                <span>{Number(gig.completedMilestoneCount)} of {(gig as any).milestones?.length || Number(gig.completedMilestoneCount) || 1} milestones settled</span>
                               </div>
                             </div>
                           </div>
