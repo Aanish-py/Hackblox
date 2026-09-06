@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import {
   Shield,
-  ArrowRight,
   ChevronRight,
   Award,
   Scale,
@@ -72,35 +71,26 @@ export default function Welcome() {
               work begins and released automatically upon approval.
             </p>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to="/browse"
-                id="hero-browse-btn"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white font-medium text-sm transition-colors shadow-xs"
-              >
-                <span>Browse Gigs</span>
-                <ArrowRight className="w-4 h-4 text-emerald-200" />
-              </Link>
-
+            {/* CTA */}
+            <div className="flex justify-center">
               {isConnected ? (
                 <Link
-                  to="/post-gig"
-                  id="hero-post-btn"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg border border-[#E2E4EE] hover:border-[#CBD2DE] bg-white text-[#172033] hover:bg-[#F1F2FA] font-medium text-sm transition-colors shadow-xs"
+                  to="/my-contracts"
+                  id="hero-dashboard-btn"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white font-medium text-sm transition-colors shadow-xs"
                 >
-                  <span>Post a Gig</span>
-                  <ChevronRight className="w-4 h-4 text-[#8A93A3]" />
+                  <span>Go to Dashboard</span>
+                  <ChevronRight className="w-4 h-4 text-emerald-200" />
                 </Link>
               ) : (
                 <button
                   onClick={connect}
                   disabled={isConnecting}
                   id="hero-connect-btn"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg border border-[#E2E4EE] hover:border-[#CBD2DE] bg-white text-[#172033] hover:bg-[#F1F2FA] font-medium text-sm transition-colors shadow-xs"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white font-medium text-sm transition-colors shadow-xs"
                 >
                   <span>{isConnecting ? "Connecting..." : "Connect Wallet"}</span>
-                  <ChevronRight className="w-4 h-4 text-[#8A93A3]" />
+                  <ChevronRight className="w-4 h-4 text-emerald-200" />
                 </button>
               )}
             </div>
