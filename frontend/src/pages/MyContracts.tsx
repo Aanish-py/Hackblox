@@ -7,6 +7,7 @@ import { useToast } from "../components/TransactionToast";
 import MilestoneCard from "../components/MilestoneCard";
 import DashboardShell from "../components/DashboardShell";
 import { GigState, type Gig, formatEther, shortenAddress } from "../lib/types";
+import api from "../lib/api";
 import { GIGESCROW_ADDRESS } from "../lib/contracts";
 import {
   Plus,
@@ -22,8 +23,22 @@ import {
   ArrowUpRight,
   Briefcase,
   Layers,
+  FileText,
+  ExternalLink,
+  Package,
 } from "lucide-react";
 import clsx from "clsx";
+
+interface Submission {
+  id: string;
+  gig_id: string;
+  milestone_index: number;
+  freelancer_address: string;
+  description: string;
+  external_link?: string | null;
+  ipfs_hash?: string | null;
+  created_at: string;
+}
 
 function GigDetailPanel({ gigId, address }: { gigId: number; address: string }) {
   const { gig, loading, error, refetch } = useGig(gigId);
@@ -34,6 +49,29 @@ function GigDetailPanel({ gigId, address }: { gigId: number; address: string }) 
   const [showBidderSelect, setShowBidderSelect] = useState(false);
   const [bidders, setBidders] = useState<string[]>([]);
   const [loadingBidders, setLoadingBidders] = useState(false);
+  // Deliverable submissions: keyed by milestone index
+  const [submissions, setSubmissions] = useState<Record<number, Submission[]>>({});
+  const [loadingSubmissions, setLoadingSubmissions] = useState<Record<number, boolean>>({});
+  const [expandedDeliverables, setExpandedDeliverables] = useState<Record<number, boolean>>({});
+
+  const fetchSubmissions = async (milestoneIndex: number) => {
+    if (submissions[milestoneIndex] !== undefined) {
+      // Toggle visibility
+      setExpandedDeliverables((prev) => ({ ...prev, [milestoneIndex]: !prev[milestoneIndex] }));
+      return;
+    }
+    setLoadingSubmissions((prev) => ({ ...prev, [milestoneIndex]: true }));
+    try {
+      const res = await api.get(`/submissions/${gigId}/${milestoneIndex}`);
+      setSubmissions((prev) => ({ ...prev, [milestoneIndex]: res.data || [] }));
+      setExpandedDeliverables((prev) => ({ ...prev, [milestoneIndex]: true }));
+    } catch {
+      setSubmissions((prev) => ({ ...prev, [milestoneIndex]: [] }));
+      setExpandedDeliverables((prev) => ({ ...prev, [milestoneIndex]: true }));
+    } finally {
+      setLoadingSubmissions((prev) => ({ ...prev, [milestoneIndex]: false }));
+    }
+  };
 
   if (loading) {
     return (
@@ -184,17 +222,107 @@ function GigDetailPanel({ gigId, address }: { gigId: number; address: string }) 
           Milestones Breakdown
         </span>
         {gig.milestones.map((ms, i) => (
-          <MilestoneCard
-            key={i}
-            milestone={ms}
-            index={i}
-            gigId={gig.gigId}
-            gigState={gig.state}
-            isClient={isClient}
-            isFreelancer={isFreelancer}
-            onRelease={handleRelease}
-            onDispute={() => setShowDisputeForm(true)}
-          />
+          <div key={i} className="space-y-2">
+            <MilestoneCard
+              milestone={ms}
+              index={i}
+              gigId={gig.gigId}
+              gigState={gig.state}
+              isClient={isClient}
+              isFreelancer={isFreelancer}
+              onRelease={handleRelease}
+              onDispute={() => setShowDisputeForm(true)}
+            />
+
+            {/* Deliverable viewer: visible to client for InProgress gigs */}
+            {isClient && gig.state === GigState.InProgress && (
+              <div className="ml-4">
+                <button
+                  id={`view-deliverable-${Number(gig.gigId)}-${i}`}
+                  onClick={() => fetchSubmissions(i)}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#176B4A] hover:text-[#13583C] transition-colors py-1"
+                >
+                  {loadingSubmissions[i] ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Package className="w-3 h-3" />
+                  )}
+                  {expandedDeliverables[i] ? "Hide Deliverables" : "View Freelancer Deliverable"}
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform ${expandedDeliverables[i] ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {expandedDeliverables[i] && (
+                  <div className="mt-2 space-y-2">
+                    {!submissions[i] || submissions[i].length === 0 ? (
+                      <div className="p-3 rounded-lg border border-dashed border-[#E2E4EE] bg-[#F8F8FC] text-xs text-[#8A93A3] text-center">
+                        No deliverable submitted yet for this milestone.
+                      </div>
+                    ) : (
+                      submissions[i].map((sub) => (
+                        <div
+                          key={sub.id}
+                          className="p-3.5 rounded-xl border border-[#E2E4EE] bg-white shadow-xs space-y-2"
+                        >
+                          {/* Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-[#176B4A]" />
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-[#176B4A]">
+                                Deliverable Submitted
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-[#8A93A3] font-mono">
+                              {new Date(sub.created_at).toLocaleString()}
+                            </span>
+                          </div>
+
+                          {/* Description */}
+                          <p className="text-xs text-[#172033] leading-relaxed bg-[#F8F8FC] p-2.5 rounded-lg border border-[#E2E4EE]">
+                            {sub.description}
+                          </p>
+
+                          {/* External link */}
+                          {sub.external_link && (
+                            <a
+                              href={sub.external_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-[#176B4A] font-semibold hover:underline"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              {sub.external_link.length > 60
+                                ? sub.external_link.slice(0, 60) + "..."
+                                : sub.external_link}
+                            </a>
+                          )}
+
+                          {/* IPFS artifact */}
+                          {sub.ipfs_hash && (
+                            <a
+                              href={`https://gateway.pinata.cloud/ipfs/${sub.ipfs_hash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-[#5F6878] font-mono hover:text-[#176B4A] hover:underline transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              IPFS: {sub.ipfs_hash.slice(0, 20)}...{sub.ipfs_hash.slice(-6)}
+                            </a>
+                          )}
+
+                          {/* Freelancer address */}
+                          <div className="text-[10px] text-[#8A93A3] font-mono">
+                            By: {sub.freelancer_address.slice(0, 10)}...{sub.freelancer_address.slice(-6)}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
@@ -374,7 +502,7 @@ export default function MyContracts() {
         title: `Active contract in milestone delivery: ${g.description.slice(0, 40)}...`,
         type: "review",
         actionLabel: "View Milestones",
-        actionLink: `/my-contracts`,
+        actionLink: `/my-contracts/${g.gigId}`,
       });
     } else if (g.state === GigState.Disputed) {
       pendingActions.push({

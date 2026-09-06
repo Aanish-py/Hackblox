@@ -74,6 +74,14 @@ export default function App() {
             }
           />
           <Route
+            path="/my-contracts/:gigId"
+            element={
+              <ProtectedRoute>
+                <MyContracts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/gig/:gigId"
             element={
               <ProtectedRoute>
