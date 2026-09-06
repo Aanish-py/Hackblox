@@ -398,32 +398,8 @@ npx hardhat run scripts/deploy.js --network sepolia
 
 ---
 
-## 🗺️ Roadmap
-
-### ✅ Phase 1 — Current Implementation
-- [x] GigEscrow with ETH and ERC-20 support
-- [x] 2–N milestone system with independent release
-- [x] Dispute mechanism with arbitrator role
-- [x] NFT reputation badges (6 types × 5 levels, in-place upgrade)
-- [x] Frontend with MetaMask wallet connect
-- [x] Backend API + PostgreSQL (Supabase)
-- [x] IPFS integration via Pinata
-- [x] Freelancer stake-based bidding system
-- [x] AI-assisted dispute analysis (GPT-4o)
-- [x] Sign-In with Ethereum (SIWE)
-- [x] Live on Sepolia Testnet
-
-### 🔜 Phase 2 — Next Steps
-- [ ] Replace single arbitrator with **Gnosis Safe multisig**
-- [ ] **DAO-based dispute voting** — GCRB badge holders vote (weighted by level)
-- [ ] Time-locked milestones — auto-release after deadline if no dispute
-- [ ] Cross-chain support via **LayerZero bridge**
-- [ ] Reputation-gated gig access (client requires Level 3+ badge)
-- [ ] **ERC-4337 Account Abstraction** — fully gasless UX
-
----
-
 ## 📖 Detailed Technical Report
+
 
 For a full technical deep-dive including contract specs, security analysis, gas optimization, and architectural decisions, see [`solution.md`](solution.md).
 
