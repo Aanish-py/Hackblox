@@ -1,36 +1,50 @@
 import { Link } from "react-router-dom";
-import { Clock, Users, Zap, ArrowRight } from "lucide-react";
+import { Clock, Users, Zap, ArrowRight, Lock } from "lucide-react";
 import { type Gig, GigState, GigStateLabel, GigStateClass, formatEther, shortenAddress, isEthToken } from "../lib/types";
 import clsx from "clsx";
 
 interface GigCardProps {
   gig: Gig;
   currentAddress?: string | null;
+  /**
+   * When true, the card is rendered in a public marketplace context.
+   * Non-open gigs that the current wallet is not a party to will not
+   * be rendered as clickable links (they are excluded from Browse already,
+   * but this prop makes GigCard itself safe if used elsewhere).
+   */
+  isMarketplace?: boolean;
 }
 
-export default function GigCard({ gig, currentAddress }: GigCardProps) {
+export default function GigCard({ gig, currentAddress, isMarketplace = false }: GigCardProps) {
   const isClient = currentAddress?.toLowerCase() === gig.client.toLowerCase();
   const isFreelancer = currentAddress?.toLowerCase() === gig.freelancer.toLowerCase();
+  const isParty = isClient || isFreelancer;
   const tokenLabel = isEthToken(gig.token) ? "ETH" : "ERC-20";
+  const isOpen = gig.state === GigState.Open;
 
   const progressPct = gig.completedMilestoneCount > 0n
-    ? Math.min(100, Number((gig.completedMilestoneCount * 100n) / 10n)) // rough estimate
+    ? Math.min(100, Number((gig.completedMilestoneCount * 100n) / 10n))
     : 0;
 
-  return (
-    <Link
-      to={`/gig/${Number(gig.gigId)}`}
-      className="glass-card p-5 block group hover:no-underline bg-white"
-      id={`gig-card-${Number(gig.gigId)}`}
-    >
+  // In marketplace mode, non-open gigs that belong to unrelated wallets
+  // should not be accessible via this card.
+  const isAccessible = isOpen || isParty;
+
+  const cardInner = (
+    <>
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[#8A93A3] text-xs font-mono font-medium">#{Number(gig.gigId)}</span>
-            {(isClient || isFreelancer) && (
+            {isClient && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-[#E8F5EE] text-[#176B4A] border border-[#23895A]/30 font-medium">
-                {isClient ? "Your gig" : "Your contract"}
+                Your gig
+              </span>
+            )}
+            {isFreelancer && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#4F46E5] border border-[#6366F1]/30 font-medium">
+                Your contract
               </span>
             )}
           </div>
@@ -82,12 +96,45 @@ export default function GigCard({ gig, currentAddress }: GigCardProps) {
       {/* CTA */}
       <div className="flex items-center justify-between pt-3 border-t border-[#E2E4EE]">
         <span className="text-xs text-[#8A93A3]">
-          {gig.state === GigState.Open ? "Accepting bids" : gig.state === GigState.Disputed ? "⚠ Under dispute" : "Escrow secured"}
+          {gig.state === GigState.Open
+            ? "Accepting bids"
+            : gig.state === GigState.Disputed
+            ? "⚠ Under dispute"
+            : "Escrow secured"}
         </span>
-        <span className="text-xs font-semibold text-[#176B4A] flex items-center gap-1 group-hover:text-[#13583C] transition-colors">
-          View details <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-        </span>
+        {isAccessible ? (
+          <span className="text-xs font-semibold text-[#176B4A] flex items-center gap-1 group-hover:text-[#13583C] transition-colors">
+            View details <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </span>
+        ) : (
+          <span className="text-xs text-[#8A93A3] flex items-center gap-1">
+            <Lock className="w-3 h-3" /> Participants only
+          </span>
+        )}
       </div>
-    </Link>
+    </>
+  );
+
+  // If the gig is accessible (open, or current user is a party), render as clickable link
+  if (isAccessible) {
+    return (
+      <Link
+        to={`/gig/${Number(gig.gigId)}`}
+        className="glass-card p-5 block group hover:no-underline bg-white"
+        id={`gig-card-${Number(gig.gigId)}`}
+      >
+        {cardInner}
+      </Link>
+    );
+  }
+
+  // Otherwise render as a non-interactive card (for safety, though Browse filters these out)
+  return (
+    <div
+      className="glass-card p-5 block bg-white opacity-70 cursor-default"
+      id={`gig-card-${Number(gig.gigId)}`}
+    >
+      {cardInner}
+    </div>
   );
 }
