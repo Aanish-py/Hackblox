@@ -1,13 +1,28 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { AlertTriangle, Loader2, ExternalLink, Shield, Brain, CheckCircle, XCircle, FileText, ArrowLeft, Send } from "lucide-react";
+import {
+  AlertTriangle,
+  Loader2,
+  ExternalLink,
+  Shield,
+  Brain,
+  CheckCircle,
+  XCircle,
+  FileText,
+  ArrowLeft,
+  Send,
+  Lock,
+  Clock,
+} from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import { useGig } from "../hooks/useGig";
 import { useGigEscrowContract } from "../hooks/useContract";
+import { useArbitrator } from "../hooks/useArbitrator";
 import { useToast } from "../components/TransactionToast";
 import DashboardShell from "../components/DashboardShell";
 import api from "../lib/api";
 import { GigState, shortenAddress } from "../lib/types";
+import { getGigRole, GigRoleLabel, getRoleBadgeClass } from "../lib/roles";
 
 interface DisputeData {
   id: string;
@@ -25,12 +40,64 @@ interface DisputeData {
   createdAt: string;
 }
 
+// ─── Access-Denied State ──────────────────────────────────────────────────────
+
+function DisputeAccessDenied() {
+  const navigate = useNavigate();
+  return (
+    <DashboardShell>
+      <div className="max-w-md mx-auto my-16">
+        <div className="bg-white border border-[#E2E4EE] rounded-2xl p-10 text-center shadow-sm space-y-5">
+          <div className="w-14 h-14 rounded-full bg-[#F1F2FA] border border-[#E2E4EE] flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7 text-[#5F6878]" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-lg font-bold text-[#172033] tracking-tight">
+              Dispute access restricted
+            </h2>
+            <p className="text-sm text-[#5F6878] leading-relaxed">
+              This case is limited to its participants and the GigChain protocol
+              arbitrator. On-chain data remains publicly observable on-chain,
+              but the GigChain application restricts dispute workspace access to
+              authorized parties only.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/my-contracts")}
+            id="access-denied-back-btn"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#176B4A] hover:bg-[#13583C] text-white text-sm font-semibold transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    </DashboardShell>
+  );
+}
+
+// ─── Arbitrator Role Loading State ────────────────────────────────────────────
+
+function DisputeRoleChecking() {
+  return (
+    <DashboardShell>
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <Loader2 className="w-8 h-8 text-[#176B4A] animate-spin" />
+        <p className="text-xs text-[#5F6878]">Checking arbitration role…</p>
+      </div>
+    </DashboardShell>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function DisputeDetails() {
   const { gigId } = useParams<{ gigId: string }>();
   const navigate = useNavigate();
   const { address } = useWallet();
   const { gig, loading: gigLoading } = useGig(gigId ? parseInt(gigId) : null);
   const contract = useGigEscrowContract();
+  const { arbitratorAddress, loading: arbitratorLoading, error: arbitratorError } = useArbitrator();
   const { txPending, txSuccess, txError } = useToast();
   const [dispute, setDispute] = useState<DisputeData | null>(null);
   const [loadingDispute, setLoadingDispute] = useState(true);
@@ -39,8 +106,6 @@ export default function DisputeDetails() {
   const [analyzingAI, setAnalyzingAI] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [resolveToFreelancer, setResolveToFreelancer] = useState<boolean | null>(null);
-
-  const isParty = gig && address ? address.toLowerCase() === gig.client.toLowerCase() || address.toLowerCase() === gig.freelancer.toLowerCase() : false;
 
   useEffect(() => {
     if (!gigId) return;
@@ -92,24 +157,24 @@ export default function DisputeDetails() {
     }
   };
 
-  if (gigLoading || loadingDispute) {
-    return (
-      <DashboardShell>
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Loader2 className="w-8 h-8 text-[#176B4A] animate-spin" />
-          <p className="text-xs text-[#5F6878]">Loading arbitration dossier...</p>
-        </div>
-      </DashboardShell>
-    );
+  // ── Phase 1: Loading — gig data or arbitrator address still resolving ──────
+  // Show a neutral loading state. Do NOT render dispute data until role is known.
+  const isResolvingRole = gigLoading || loadingDispute || arbitratorLoading;
+
+  if (isResolvingRole) {
+    return <DisputeRoleChecking />;
   }
 
+  // ── Phase 2: Gig not found ────────────────────────────────────────────────
   if (!gig) {
     return (
       <DashboardShell>
         <div className="bg-white border border-[#E2E4EE] rounded-xl p-10 text-center max-w-md mx-auto my-12 shadow-xs">
           <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
           <p className="text-base font-bold text-[#172033] mb-1">Gig Not Found</p>
-          <p className="text-xs text-[#5F6878] mb-4">The dispute contract could not be loaded from on-chain storage.</p>
+          <p className="text-xs text-[#5F6878] mb-4">
+            The dispute contract could not be loaded from on-chain storage.
+          </p>
           <button
             onClick={() => navigate("/my-contracts")}
             className="px-4 py-2 rounded-lg bg-white border border-[#E2E4EE] text-xs font-semibold text-[#172033]"
@@ -121,6 +186,7 @@ export default function DisputeDetails() {
     );
   }
 
+  // ── Phase 3: Not in disputed state ───────────────────────────────────────
   if (gig.state !== GigState.Disputed) {
     return (
       <DashboardShell>
@@ -141,6 +207,23 @@ export default function DisputeDetails() {
     );
   }
 
+  // ── Phase 4: Role determination ──────────────────────────────────────────
+  // All data is loaded. Now determine the current wallet's role for this gig.
+  const role = getGigRole(gig, address, arbitratorAddress);
+
+  // UNRELATED wallets — access denied, no dispute data rendered
+  if (role === "UNRELATED") {
+    return <DisputeAccessDenied />;
+  }
+
+  // ── Phase 5: Arbitrator error warning (still show dispute to parties) ────
+  // If arbitrator lookup failed but role is confirmed as CLIENT or FREELANCER,
+  // show the dispute normally but include a warning about arbitrator status.
+
+  const isArbitrator = role === "ARBITRATOR";
+  const isParty = role === "CLIENT" || role === "FREELANCER";
+
+  // ─── Render full dispute view for authorized parties ──────────────────────
   return (
     <DashboardShell>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -169,11 +252,30 @@ export default function DisputeDetails() {
               </div>
             </div>
 
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 self-start sm:self-center">
-              Active Dispute
-            </span>
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              {/* Role badge */}
+              <span
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${getRoleBadgeClass(role)}`}
+              >
+                {GigRoleLabel[role]}
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                Active Dispute
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Arbitrator error notice (advisory) */}
+        {arbitratorError && !isArbitrator && (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+            <span>
+              Unable to determine arbitration authority: {arbitratorError}. Arbitration controls
+              are hidden until the arbitrator address can be confirmed from the contract.
+            </span>
+          </div>
+        )}
 
         {/* Stage 1: Dispute Details & Context */}
         <div className="bg-white border border-[#E2E4EE] rounded-xl p-6 shadow-xs space-y-4">
@@ -189,8 +291,14 @@ export default function DisputeDetails() {
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A93A3] block mb-1">
                 Client Address
               </span>
-              <span className="font-mono text-[#172033] font-medium" title={gig.client}>
+              <span
+                className="font-mono text-[#172033] font-medium"
+                title={gig.client}
+              >
                 {shortenAddress(gig.client, 6)}
+                {role === "CLIENT" && (
+                  <span className="ml-1.5 text-[10px] font-bold text-[#176B4A]">(you)</span>
+                )}
               </span>
             </div>
 
@@ -198,8 +306,14 @@ export default function DisputeDetails() {
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A93A3] block mb-1">
                 Freelancer Address
               </span>
-              <span className="font-mono text-[#172033] font-medium" title={gig.freelancer}>
+              <span
+                className="font-mono text-[#172033] font-medium"
+                title={gig.freelancer}
+              >
                 {shortenAddress(gig.freelancer, 6)}
+                {role === "FREELANCER" && (
+                  <span className="ml-1.5 text-[10px] font-bold text-[#4F46E5]">(you)</span>
+                )}
               </span>
             </div>
 
@@ -266,10 +380,13 @@ export default function DisputeDetails() {
             </div>
           )}
 
-          {/* Submit new evidence if party */}
+          {/* Submit new evidence — parties only (client or freelancer) */}
           {isParty && (
             <div className="pt-3 border-t border-[#E2E4EE] space-y-2">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#5F6878]" htmlFor="evidence-textarea">
+              <label
+                className="block text-[11px] font-bold uppercase tracking-wider text-[#5F6878]"
+                htmlFor="evidence-textarea"
+              >
                 Submit Additional Evidence or Clarification
               </label>
               <textarea
@@ -291,6 +408,16 @@ export default function DisputeDetails() {
               </button>
             </div>
           )}
+
+          {/* Arbitrator can also see evidence submission area (read-only view) */}
+          {isArbitrator && (
+            <div className="pt-3 border-t border-[#E2E4EE]">
+              <div className="flex items-center gap-2 text-xs text-[#8A93A3]">
+                <FileText className="w-3.5 h-3.5" />
+                <span>Evidence review mode — only the involved parties may submit additional evidence.</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stage 3: AI Advisory Assessment */}
@@ -302,6 +429,7 @@ export default function DisputeDetails() {
               </span>
               <h2 className="text-sm font-bold text-[#172033]">AI Advisory Analysis (GPT-4o)</h2>
             </div>
+            {/* AI analysis trigger — available to all authorized parties */}
             {!dispute?.aiRecommendation && (
               <button
                 onClick={triggerAIAnalysis}
@@ -362,7 +490,7 @@ export default function DisputeDetails() {
           )}
         </div>
 
-        {/* Stage 4: Arbitrator Resolution Panel */}
+        {/* Stage 4: Arbitration Execution Panel */}
         <div className="bg-white border border-[#E2E4EE] rounded-xl p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-[#E2E4EE]">
             <span className="w-5 h-5 rounded-full bg-[#E8F5EE] text-[#176B4A] text-xs font-bold flex items-center justify-center">
@@ -371,42 +499,61 @@ export default function DisputeDetails() {
             <h2 className="text-sm font-bold text-[#172033]">Arbitration Execution Panel</h2>
           </div>
 
-          <p className="text-xs text-[#5F6878]">
-            Executing resolution triggers an on-chain smart contract transaction that unlocks escrow funds directly to the selected party.
-          </p>
+          {/* ── ARBITRATOR: Show resolution controls ── */}
+          {isArbitrator ? (
+            <>
+              <p className="text-xs text-[#5F6878]">
+                Executing resolution triggers an on-chain smart contract transaction that unlocks escrow funds
+                directly to the selected party.
+              </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <button
-              onClick={() => handleResolve(true)}
-              disabled={resolving}
-              id="resolve-freelancer-btn"
-              className="flex-1 py-3 px-4 rounded-xl bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {resolving && resolveToFreelancer === true ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-              <span>Resolve & Release to Freelancer</span>
-            </button>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  onClick={() => handleResolve(true)}
+                  disabled={resolving}
+                  id="resolve-freelancer-btn"
+                  className="flex-1 py-3 px-4 rounded-xl bg-[#176B4A] hover:bg-[#13583C] text-white text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {resolving && resolveToFreelancer === true ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  <span>Resolve & Release to Freelancer</span>
+                </button>
 
-            <button
-              onClick={() => handleResolve(false)}
-              disabled={resolving}
-              id="resolve-client-btn"
-              className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {resolving && resolveToFreelancer === false ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <XCircle className="w-4 h-4" />
-              )}
-              <span>Resolve & Refund to Client</span>
-            </button>
-          </div>
+                <button
+                  onClick={() => handleResolve(false)}
+                  disabled={resolving}
+                  id="resolve-client-btn"
+                  className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {resolving && resolveToFreelancer === false ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4" />
+                  )}
+                  <span>Resolve & Refund to Client</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            /* ── CLIENT / FREELANCER: Awaiting arbitrator — no resolution controls ── */
+            <div className="flex flex-col items-center gap-3 py-6 px-4 rounded-xl bg-[#F8F8FC] border border-[#E2E4EE]">
+              <div className="w-10 h-10 rounded-full bg-[#FEF3C7] border border-[#F59E0B]/30 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-amber-700" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-bold text-[#172033]">Awaiting arbitrator decision</p>
+                <p className="text-xs text-[#5F6878] max-w-sm leading-relaxed">
+                  The GigChain protocol arbitrator will review the evidence and issue an on-chain
+                  resolution. Only the authorized arbitrator can execute fund release.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardShell>
   );
 }
-

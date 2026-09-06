@@ -10,6 +10,7 @@ import SubmitWork from "./pages/SubmitWork";
 import Reputation from "./pages/Reputation";
 import Profile from "./pages/Profile";
 import DisputeDetails from "./pages/DisputeDetails";
+import ArbitrationDashboard from "./pages/ArbitrationDashboard";
 import { useWallet } from "./context/WalletContext";
 import { CHAIN_ID, CHAIN_NAMES } from "./lib/contracts";
 
@@ -142,6 +143,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DisputeDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/arbitration"
+            element={
+              <ProtectedRoute>
+                <ArbitrationDashboard />
               </ProtectedRoute>
             }
           />

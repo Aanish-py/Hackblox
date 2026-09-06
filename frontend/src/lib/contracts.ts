@@ -15,6 +15,26 @@ export const CHAIN_NAMES: Record<number, string> = {
   11155111: "Sepolia Testnet",
 };
 
+/**
+ * ARBITRATOR_ADDRESS_DEV_HINT
+ *
+ * Development reference only. This value is NOT used for role authorization.
+ *
+ * The application ALWAYS reads the authoritative arbitrator address from the
+ * deployed GigEscrow contract via:
+ *
+ *   GigEscrow.arbitrator()
+ *
+ * This constant exists solely for developer orientation — to document which
+ * MetaMask account is intended to be the protocol arbitrator. It must NEVER
+ * be used as a fallback when the on-chain query fails, and must NEVER be used
+ * to bypass the smart contract's actual arbitrator() return value.
+ *
+ * To assign a new arbitrator: the current on-chain arbitrator must call
+ * GigEscrow.setArbitrator(newAddress) — this cannot be done from the frontend.
+ */
+export const ARBITRATOR_ADDRESS_DEV_HINT = ""; // Set to the intended arbitrator address for local dev reference
+
 if (!GIGESCROW_ADDRESS) {
   console.warn(
     "⚠️ GigChain: Contracts not deployed on Sepolia yet.\n" +
